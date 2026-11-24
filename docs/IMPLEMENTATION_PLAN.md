@@ -8,13 +8,13 @@ This plan turns the PRD into a build sequence: architecture, schema, the hard de
 
 ## 0. Before writing code
 
-**Missing inputs.** The brief refers to files that are not in this repository yet:
+**Reference files** (all now in the repository):
 
-| File | Used for | Fallback if it doesn't arrive |
+| File | Used for | Notes |
 |---|---|---|
-| `assets/shape_reference.py` | Reference geometry and the sample-places test fixture | Implement from the formulas in the brief; take fixture places from the poster image |
-| World-land dots asset | The faded dot map | Generate from Natural Earth 110m land (public domain) with `scripts/build-land-dots.ts` |
-| `docs/poster-story-polygon-map.png` | Visual reference for the poster | Use the design canvas boards |
+| `assets/shape_reference.py` | Reference geometry and the 12 sample places used as the test fixture | Runs as is. It writes `shape_sample.svg` to the folder you run it from |
+| `assets/world-land-dots.json` | The faded dot map on the poster | 12,692 dots, 191 KB. **Already projected** (x, y), with the -43° rotation built in. Northern hemisphere plus a little south of the equator (r ≤ 1.09, about 8°S). See section 4 |
+| `docs/poster-story-polygon-map.png` | Visual reference for the story poster | Stand-in fonts. Shows two layout bugs to avoid (section 6) |
 
 **Accounts the owner must create:** a Supabase project, a Vercel project, a Resend account with a verified sending domain, and the product name and domain. Until the name is chosen, it lives only in `config/brand.ts`.
 
@@ -178,7 +178,7 @@ toUnitVector(lat, lon): Vec3
 mergeNearby(places, km = 50): Dot[]               // deterministic, see below
 polarAngle({x, y}) = atan2(x, -y)
 orderLoop(dots): Dot[]                            // sort by polarAngle, ties broken by geonameId
-greatCircle(a, b, segments): LatLon[]             // slerp; segment count scales with the angle (≥ 8)
+greatCircle(a, b, segments = 12): Vec3[]         // slerp, 13 samples including both ends (as in the reference)
 buildPolygon(dots): Path                          // n=0 → empty, n=1 → dot, n=2 → one arc, n≥3 → closed loop
 fit(points, frameRadiusPx, marginPx = 70): Transform  // centre on bounding-box middle, scale so the farthest point sits 70px inside
 labels(dots, transform): Label[]                  // country names, grouped when they'd collide
@@ -188,9 +188,13 @@ stats(dots): { places, countries }               // "12 places · 7 countries"
 - **Deterministic merging.** Sort places by GeoNames id (or by lat/lon when there is no id), then do a greedy single pass: each place joins the first existing dot within 50 km (haversine), otherwise it starts a new dot. The dot sits at the position of its most-populated member. The same set of places always gives the same dots, and so the same shape.
 - **Stable slotting.** Ordering by angle around the pole means a new place only changes the two edges next to it. That is the PRD's "slots in without redrawing the rest". Test it.
 - **Fit for compact and spread-out sets.** Cap the zoom so that a tight cluster (say, everything in Kerala) still shows enough map context. Suggested cap: the shown span is never less than about 600 km, to be tuned with real journeys. Southern places (r > 1) are fine. The land dots fade out by radius, so the frame is chosen from the polygon, not the pole.
-- **Fit uses arc samples too.** It fits to the polygon's arc points, not only the vertices, so long great-circle edges stay inside the frame.
+- **Fit matches the reference.** `shape_reference.py` centres on the bounding box of the vertices and scales to the farthest vertex. For the sample set, no arc point lies farther out than the farthest vertex (both are 0.7631), so fitting to vertices is enough there. A unit test checks that every arc point stays within the frame for all fixtures. If a real journey breaks this, include the arc samples in the fit.
+- **Land dots are pre-projected.** `world-land-dots.json` stores chart (x, y) values, not lat/lon, with the -43° rotation built in. The poster code applies only the fit transform to them, as the reference does. So **the rotation is fixed at -43°**: changing it means regenerating the asset (add `scripts/build-land-dots.ts` from Natural Earth if that's ever needed). The asset stops at about 8°S, so places in Australia, southern Africa or South America sit over empty sky. Decide whether to extend the asset before launch (open question 6).
+- **The globe needs different land data.** The rotating globe (slice 6) uses an orthographic view, so it needs land in lat/lon. Use Natural Earth 110m land (public domain) via `world-atlas` / TopoJSON, not this asset.
+- **The reference doesn't merge places.** Its docstring says to merge before calling. The sample set doesn't test merging: its closest pair is Valiyaparamba–Wayanad at 116 km, which stays as two dots. Add a separate fixture for merging.
+- **Sample fixture loop order** (the expected output for the test): Portland → California → Yellowstone → Portimão → Seville → Barcelona → Vienna → Goa → Valiyaparamba → Wayanad → Sri Lanka → Langkawi → back to Portland.
 - **Labels.** Country names in spaced capitals. Greedy placement: measure each label's box (Space Mono's advance width is fixed, which makes measuring easy). If two would overlap, merge them ("India · Sri Lanka") and place at their centroid, then repeat until nothing overlaps.
-- **Tests (Vitest).** Projection values at known points (the pole, the equator, the rotation); merging thresholds at 49 and 51 km; ordering is stable when the input is shuffled; inserting a place changes exactly two edges; the n = 0, 1, 2 cases; fit keeps every arc point within `R - 70`. A golden SVG snapshot built from the `shape_reference.py` sample places is compared point by point against the Python output (within 0.01 px).
+- **Tests (Vitest).** Projection values at known points (the pole, the equator, the rotation); merging thresholds at 49 and 51 km; ordering is stable when the input is shuffled; inserting a place changes exactly two edges; the n = 0, 1, 2 cases; fit keeps every arc point within `R - 70`. A golden fixture: `scripts/export-reference-fixture.py` runs `assets/shape_reference.py` and writes `lib/shape/__fixtures__/reference.json` (the projected vertices, the loop order, the 156 arc samples and the fit for a 1000 × 1000 frame). The TypeScript port must match it point by point (within 1e-9 in chart units). The fixture is committed, so CI doesn't need Python.
 
 ---
 
@@ -212,6 +216,10 @@ The brief overrides the PRD here: posters are rendered **on the server** (SVG �
 
 - `lib/shape/poster.ts` builds an SVG string from `(snapshot, format, options)`. The formats are story 1080 × 1920, feed 1080 × 1350 and link 1200 × 630. Each has its own layout constants, following the story layout in the PRD (chart about 890 px across).
 - **Layers, from the back:** #05050A background → magenta radial glow → stars outside the frame → frame circle, degree ticks, graticule every 15° → land dots, fading by radius → polygon glow (a blurred copy: resvg supports `feGaussianBlur`) → 2.8 px #FF2E7E line with a 10% fill → white dots with pink halos → labels → type (names in Instrument Serif italic with a pink ampersand, labels in Space Mono, supporting text in Inter) → URL pill and QR code (`qrcode` as SVG).
+- **Layout must adapt to the data.** The reference image shows two bugs to design out:
+  1. *Names overlap the counts line* ("Ravi & Tara" wraps to two lines and covers "12 places · 7 countries"). Measure the names block using the real font metrics (with `fontkit` or `opentype.js`, loading the same Instrument Serif file resvg uses), shrink the size to fit on one line down to a minimum, wrap only below that, and then place the counts line under the measured block. The chart moves down to make room, or shrinks within limits.
+  2. *Labels are cut off at the canvas edge* ("SPAIN · PORTUGAL" on the left). The label placer gets the canvas bounds as a constraint: try positions right, left, above and below the dot, and if none fits, move the label inward along the line from the dot to the chart centre.
+  Add a poster layout test with long names (for example "Maximiliana & Bartholomew") and places at the frame edge, which fails if any text box overlaps another or leaves the canvas.
 - **Film grain at 7%.** Rendering noise in resvg is slow, so use a pre-made tileable grain PNG embedded as an `<image>` pattern instead.
 - **Route** `GET /api/poster/[shareToken]/[format].png`: `content_hash = sha256(snapshot + options + renderer version)`. If `posters/{content_hash}/{format}.png` exists in Storage, serve it. Otherwise render it, store it and serve it. Headers are `Cache-Control: public, max-age=31536000, immutable`. Target under 3 seconds when nothing is cached (resvg usually takes 200 to 600 ms at these sizes).
 - **Inside the couple space**, the poster preview is the same SVG rendered in the browser, so changing options feels instant. The PNG is made only when they press share or download.
@@ -334,3 +342,4 @@ Estimates assume one full-stack engineer working with Claude Code. Each slice en
 3. The final question wording, after the first 20 couples (wording is data-only, so changes need no code).
 4. Whether question 11 ("went hilariously wrong") stays, given the no-"wrong" copy rule. It is allowed as question text in this plan.
 5. The country → best-known-city overrides for country searches (a short curated list).
+6. The land-dots asset stops at about 8°S. Should it be extended to cover the southern hemisphere before launch, so couples with trips to Australia, South Africa or South America still see land behind those places?
