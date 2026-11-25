@@ -27,7 +27,7 @@ const ALIASES: Record<string, [string, string]> = {
   // places that aren't cities
   bali: ['denpasar', 'ID'], goa: ['panaji', 'IN'], tuscany: ['florence', 'IT'], santorini: ['fira', 'GR'],
   hawaii: ['honolulu', 'US'], maui: ['lahaina', 'US'], patagonia: ['punta arenas', 'CL'], 'cote d azur': ['nice', 'FR'],
-  'french riviera': ['nice', 'FR'], provence: ['marseille', 'FR'], kerala: ['cochin', 'IN'], ladakh: ['leh', 'IN'],
+  'french riviera': ['nice', 'FR'], provence: ['marseille', 'FR'], kerala: ['cochin', 'IN'], ladakh: ['leh', 'IN'], langkawi: ['kuah', 'MY'],
   // English and older names
   seville: ['sevilla', 'ES'], cologne: ['koln', 'DE'], bruges: ['brugge', 'BE'], nuremberg: ['nurnberg', 'DE'],
   lucerne: ['luzern', 'CH'], gothenburg: ['goteborg', 'SE'], marrakech: ['marrakesh', 'MA'], saigon: ['ho chi minh city', 'VN'],
@@ -58,6 +58,7 @@ export function buildIndex(version: string, rows: Row[]): CityIndex {
     for (const [key, [target, cc]] of Object.entries(ALIASES)) {
       if (key === q || (q.length >= 3 && key.startsWith(q))) add(cities.find((c, i) => names[i] === target && c.cc === cc));
     }
+    for (let i = 0; i < cities.length && out.length < limit; i++) if (names[i] === q) add(cities[i]);
     for (const [cc, cname] of countries) if (cname === q || (q.length >= 4 && cname.startsWith(q))) add(capitalOf.get(cc));
     for (let i = 0; i < cities.length && out.length < limit; i++) if (names[i].startsWith(q)) add(cities[i]);
     for (let i = 0; i < cities.length && out.length < limit; i++) if (names[i].includes(' ' + q) || alts[i].split(' ').some(w => w.startsWith(q))) add(cities[i]);

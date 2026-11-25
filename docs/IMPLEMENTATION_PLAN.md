@@ -1,5 +1,14 @@
 # Implementation plan: The Shape of Our Journey (MVP, QR swap)
 
+> **Update, 2026-11-25 (evening): what was actually built.** The MVP changed direction after this plan was written:
+> - **It's a getting-to-know-you game**, not a recap of shared travel. Each person answers about their own life (12 questions in `src/data/questions.ts`, chosen to produce many different places), then they swap and see "our world".
+> - **The map is circular and centred between their two homes** (azimuthal equidistant), not seen from the North Pole. Land dots cover the whole globe (`public/data/land.json`). The polar maths is kept and tested against the reference.
+> - **The poster shows each person's world in its own colour plus "our world"**. Its look is interim, pending a design pass.
+> - **Cut for tonight:** the separate wishlist round (one dream question instead), the cities-lived-in catch-all, the own-shape preview, offline support and analytics.
+> - **City data** comes from GeoNames via the `all-the-cities` package (the GeoNames server was unreachable from the build environment), with a list of English-name aliases.
+> See `README.md` for how to run and deploy. The rest of this document is the earlier plan and is partly out of date.
+
+
 2026-11-25 · Companion to `docs/PRD.md`. Replaces the earlier Supabase-based plan.
 
 ## What changed and why

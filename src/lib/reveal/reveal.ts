@@ -16,8 +16,8 @@ export function classify(a?: Place, b?: Place): Match {
 }
 
 /** Places both people have been (within the merge distance), and places only one of them has. */
-export function compareLists(a: Place[], b: Place[]) {
-  const near = (p: Place, list: Place[]) => list.some(q => q.id === p.id || distanceKm(p, q) <= MERGE_KM);
+export function compareLists<T extends Place>(a: T[], b: T[]) {
+  const near = (p: T, list: T[]) => list.some(q => q.id === p.id || distanceKm(p, q) <= MERGE_KM);
   const both = a.filter(p => near(p, b));
   return { both, onlyA: a.filter(p => !near(p, b)), onlyB: b.filter(p => !near(p, a)) };
 }
