@@ -24,13 +24,14 @@ npm run build && npx vite preview --port 4173 &
 node scripts/e2e-smoke.cjs e2e-out   # needs Playwright installed
 ```
 
-## Deploy (Cloudflare Pages, free)
+## Deploy (Cloudflare, free)
 
-1. Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → pick this repository.
-2. Framework preset: none. Build command: `npm run build`. Build output directory: `dist`.
-3. Save and deploy. You get a `*.pages.dev` address; add your own domain later under Custom domains.
+The repository is connected to Cloudflare Workers & Pages (project `ourworld`), so every push to `main` builds and deploys.
 
-`public/_headers` sets the security headers (strict Content Security Policy, no referrer, camera allowed for this site only).
+- Build command: `npm run build`. Deploy command: `npx wrangler deploy` (the default).
+- `wrangler.jsonc` tells Cloudflare to serve `dist/` as a static site. Without it, Wrangler tries to auto-configure the Vite project and fails on Vite 5.
+- `public/_headers` sets the security headers (strict Content Security Policy, no referrer, camera allowed for this site only).
+- Check a deploy locally without publishing: `npm run build && npx wrangler deploy --dry-run`.
 
 ## Data
 
