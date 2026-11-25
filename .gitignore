@@ -1,0 +1,4 @@
+node_modules
+dist
+shape_sample.svg
+*.log
