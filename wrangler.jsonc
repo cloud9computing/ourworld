@@ -1,0 +1,10 @@
+// Cloudflare deploy config: serve the built static site from dist/ (no server code).
+// Headers come from public/_headers, which Vite copies into dist/.
+{
+  "name": "ourworld",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
