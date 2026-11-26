@@ -182,6 +182,14 @@ async function answerAll(page, cities, shots) {
   await tara.locator('.explore-list').waitFor();
   console.log('Tara’s phone after the code:', await tara.locator('.more-count').textContent(), 'to explore');
 
+  // the share landing a poster's link opens
+  const viewer = await newPhone(browser);
+  await viewer.goto(`${BASE}/s`);
+  await viewer.getByRole('button', { name: 'Find out together' }).waitFor();
+  console.log('share landing:', await viewer.locator('h1').textContent(), '|', await viewer.locator('.lede').textContent());
+  await viewer.waitForTimeout(1500);
+  await shot(viewer, '13-share-landing.png');
+
   // F17: the finished game is kept
   await ravi.goto(BASE);
   console.log('landing after finishing:', await ravi.getByRole('button', { name: 'See our poster' }).isVisible());

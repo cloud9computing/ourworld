@@ -16,10 +16,21 @@ export function Poster({ a, b, land, continentOf, explore, onExplore, onPlayAgai
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const model = useMemo(() => buildWorld(a.places, b.places, { continentOf, mentions: mentions(a, b) }), [a, b, continentOf]);
-  const link = location.origin;
+  // the poster's link opens the share landing page
+  const link = `${location.origin}/s`;
   const names: [string, string] = [a.name, b.name];
   const count = exploreCount(explore), next = nextToExplore(explore);
-  const ex = useMemo(() => ({ count, next: next && { name: next.place.name, origin: next.posterOrigin } }), [count, next]);
+  const ex = useMemo(() => {
+    const open = explore.filter(e => !e.went);
+    // the small charts ring each partner's own places that the other hasn't been to (not dreams)
+    const ringIds = (role: 0 | 1) => open.filter(e => e.inWorld && e.owner === role).map(e => e.place.id);
+    return {
+      count,
+      next: next && { id: next.place.id, name: next.place.name, origin: next.posterOrigin },
+      places: open.map(e => ({ id: e.place.id, lat: e.place.lat, lon: e.place.lon })),
+      ringIdsA: ringIds(a.role), ringIdsB: ringIds(b.role),
+    };
+  }, [explore, count, next, a.role, b.role]);
   const preview = useMemo(() => posterSvg(model, { format, names, showNames, showPlace, explore: ex, land, link }), [model, format, showNames, showPlace, ex, land, link]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const makePng = async () => {

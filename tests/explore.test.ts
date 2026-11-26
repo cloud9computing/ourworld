@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { setFor, byId } from '../src/data/bank';
 import { beenKey, exploreCount, exploreList, nextToExplore } from '../src/lib/explore';
-import { aroundTheWorld, buildWorld } from '../src/lib/shape/world';
+import { buildWorld } from '../src/lib/shape/world';
 import { posterSvg } from '../src/lib/shape/poster';
 import type { City } from '../src/lib/places/index';
 import type { Person } from '../src/state/people';
@@ -96,55 +96,93 @@ describe('places to explore (R4)', () => {
   });
 });
 
-describe('around the world', () => {
-  it('is 360° minus the largest east–west gap, over 360', () => {
-    expect(aroundTheWorld([0, 90, 180])).toBeCloseTo(0.5);
-    expect(aroundTheWorld([-10, 10])).toBeCloseTo(20 / 360);
-    expect(aroundTheWorld([170, -170])).toBeCloseTo(20 / 360); // across the date line
-    expect(aroundTheWorld([0, 120, 240])).toBeCloseTo(240 / 360);
-  });
-});
-
-describe('poster hero (R5)', () => {
+describe('poster (speclet v4)', () => {
   const world = buildWorld(ravi.places, tara.places);
+  const list = exploreList({ tier: 2, questions: q, a: ravi, b: tara, been, went: [] });
+  const open = list.filter(e => !e.went);
+  const ex = (entries = open, extra: Partial<{ next: { id?: number; name: string; origin: string } }> = {}) => ({
+    count: entries.length,
+    next: entries[0] && { id: entries[0].place.id, name: entries[0].place.name, origin: entries[0].posterOrigin },
+    places: entries.map(e => ({ id: e.place.id, lat: e.place.lat, lon: e.place.lon })),
+    ringIdsA: entries.filter(e => e.inWorld && e.owner === 0).map(e => e.place.id),
+    ringIdsB: entries.filter(e => e.inWorld && e.owner === 1).map(e => e.place.id),
+    ...extra,
+  });
+  const svgOf = (explore: ReturnType<typeof ex>, showPlace = true, format: 'story' | 'feed' = 'story', w = world) =>
+    posterSvg(w, { format, names: ['Ravi', 'Tara'], showNames: true, showPlace, explore, land: [], link: 'https://x.example/s' });
   const texts = (svg: string) => [...svg.matchAll(/>([^<]+)</g)].map(m => m[1].trim()).filter(Boolean);
-  const make = (explore: { count: number; next?: { name: string; origin: string } }, showPlace = true, w = world) =>
-    texts(posterSvg(w, { format: 'story', names: ['Ravi', 'Tara'], showNames: true, showPlace, explore, land: [], link: 'https://x.example' }));
-  const around = `${Math.round(world.aroundWorld! * 100)}%`;
+  const count = (svg: string, cls: string) => (svg.match(new RegExp(`class="${cls}[" ]`, 'g')) ?? []).length;
 
-  it('shows the count, the caption, the supporting line and the next place', () => {
-    const t = make({ count: 14, next: { name: 'Chennai', origin: 'where Ravi was happiest as a kid' } });
-    expect(t).toEqual(expect.arrayContaining(['14', 'PLACES STILL TO EXPLORE IN EACH OTHER’S WORLDS', 'Next: Chennai, where Ravi was happiest as a kid']));
-    expect(t).toContain(`${world.counts.places} places · ${world.counts.countries} countries · ${around} of the way around the world`);
+  it('draws one hollow ring per place to explore, the same as the hero number, and a ghost outline', () => {
+    const svg = svgOf(ex());
+    expect(count(svg, 'explore-ring')).toBe(open.length);
+    expect(texts(svg)).toContain(String(open.length));
+    expect(count(svg, 'ghost')).toBe(1);
   });
 
-  it.each([
-    ['where you both want to go', 'Next: Kyoto, where you both want to go'],
-    ['on Ravi’s secret wishlist', 'Next: Kyoto, on Ravi’s secret wishlist'],
-    ['somewhere to go back to', 'Next: Kyoto, somewhere to go back to'],
-  ])('words the next place for each origin: %s', (origin, line) => {
-    expect(make({ count: 3, next: { name: 'Kyoto', origin } })).toContain(line);
+  it('rings on each small chart exactly that partner’s own places the other hasn’t been to', () => {
+    const svg = svgOf(ex());
+    const e = ex();
+    // Ravi: Chennai and Goa (Act 1, "Not yet"); Tara: Kochi and Bali. Dreams aren't ringed on the small charts.
+    expect(list.filter(x => e.ringIdsA.includes(x.place.id)).map(x => x.place.name)).toEqual(['Chennai', 'Goa']);
+    expect(list.filter(x => e.ringIdsB.includes(x.place.id)).map(x => x.place.name)).toEqual(['Kochi', 'Bali']);
+    expect(count(svg, 'explore-dot-ring')).toBe(4);
   });
 
-  it('handles zero places to explore', () => {
-    const t = make({ count: 0 });
-    expect(t).toEqual(expect.arrayContaining([around, 'OF THE WAY AROUND THE WORLD', 'You’ve explored each other’s worlds. Time for new ones.']));
-    expect(t.join(' ')).not.toMatch(/Next:/);
+  it('orders the text: names, number, caption, places together, next place, footer', () => {
+    const t = texts(svgOf(ex()));
+    const at = (x: string) => t.findIndex(v => v.includes(x));
+    expect(t).toContain('Ravi'); expect(t).toContain('Tara'); // "Ravi & Tara" (the & is its own pink span)
+    expect(t.join(' ')).not.toMatch(/Ravi &amp; Tara’s world/);
+    const order = [String(open.length), 'PLACES STILL TO EXPLORE IN EACH OTHER’S WORLDS', 'places together ·', 'Next: Kyoto, where you both want to go', 'What’s waiting in yours?'].map(at);
+    expect(order.every(i => i >= 0)).toBe(true);
+    expect([...order].sort((x, y) => x - y)).toEqual(order);
+    expect(t).toContain(`${world.counts.places} places together · ${world.counts.countries} countries`);
+    expect(t.join(' ')).not.toMatch(/way around the world|How big|of the planet|=|North Pole/);
   });
 
-  it('handles fewer than 3 visited places', () => {
-    const small = buildWorld({ name: 'A', visited: [goa], dreams: [] }, { name: 'B', visited: [lisbon], dreams: [] });
-    expect(make({ count: 2, next: { name: 'Kyoto', origin: 'on Ravi’s wishlist' } }, true, small)).toContain('2 places · 2 countries · Just getting started');
+  it('labels the next place’s ring on the chart, and no other ring', () => {
+    expect(texts(svgOf(ex()))).toContain('KYOTO');
+    expect(texts(svgOf(ex())).filter(x => /^(CHENNAI|GOA|KOCHI|BALI|LIMA)$/.test(x))).toEqual([]);
   });
 
-  it('hides place names: no star label, and "Next: somewhere new"', () => {
-    const t = make({ count: 5, next: { name: 'Chennai', origin: 'where Ravi was happiest as a kid' } }, false);
+  it('nothing left to explore: "Every place, explored together", no rings, no ghost, no next line', () => {
+    const svg = svgOf(ex([]));
+    expect(texts(svg)).toEqual(expect.arrayContaining([String(world.counts.places), 'EVERY PLACE, EXPLORED TOGETHER']));
+    expect(count(svg, 'explore-ring')).toBe(0);
+    expect(count(svg, 'ghost')).toBe(0);
+    expect(count(svg, 'explore-dot-ring')).toBe(0);
+    expect(texts(svg).join(' ')).not.toMatch(/Next:/);
+  });
+
+  it('more than 20 places: all drawn, with thinner, fainter rings', () => {
+    const many = Array.from({ length: 24 }, (_, i) => ({ ...open[0], place: { ...open[0].place, id: 9000 + i, lat: 10 + i, lon: -150 + i * 12 } }));
+    const svg = svgOf(ex(many));
+    expect(count(svg, 'explore-ring many')).toBe(24);
+    const widths = (s: string) => [...s.matchAll(/class="explore-ring[^"]*"[^>]*stroke-width="([\d.]+)"/g)].map(m => Number(m[1]));
+    expect(Math.max(...widths(svg))).toBeLessThan(Math.min(...widths(svgOf(ex()))));
+  });
+
+  it('puts a far-south place on the frame edge, in its direction', () => {
+    const south = [{ ...open[0], place: { ...open[0].place, id: 9999, name: 'Ushuaia', lat: -54.8, lon: -68.3 } }];
+    const svg = svgOf(ex(south));
+    const ring = svg.match(/class="explore-ring"[^>]*cx="([\d.]+)" cy="([\d.]+)"/)!;
+    const d = Math.hypot(Number(ring[1]) - 540, Number(ring[2]) - 930);
+    expect(d).toBeLessThanOrEqual(360);
+    expect(d).toBeGreaterThan(330); // on the edge, not somewhere inside
+  });
+
+  it('hiding place names removes the next place’s label and its name', () => {
+    const t = texts(svgOf(ex(), false));
     expect(t).toContain('Next: somewhere new');
-    expect(t.join(' ')).not.toMatch(/Chennai|CHENNAI/);
+    expect(t.join(' ')).not.toMatch(/KYOTO|Kyoto/);
   });
 
-  it('keeps the earlier removals: no "=", no North Pole, no "Mine + yours = ours", no per-person counts', () => {
-    const t = make({ count: 5, next: { name: 'Chennai', origin: 'x' } }).join(' | ');
-    expect(t).not.toMatch(/=|North Pole|Mine \+ yours|of the planet|the size of either world/i);
+  it('feed: same hero, rings and ghost, without the small charts', () => {
+    const svg = svgOf(ex(), true, 'feed');
+    expect(count(svg, 'explore-ring')).toBe(open.length);
+    expect(count(svg, 'ghost')).toBe(1);
+    expect(texts(svg)).not.toContain('+');
+    expect(texts(svg)).not.toContain('Ravi’s world');
   });
 });

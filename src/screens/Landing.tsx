@@ -6,8 +6,9 @@ import { Chart } from '../components/Chart';
 
 export type GameStatus = 'none' | 'playing' | 'finished';
 
-export function Landing({ land, status, onStart, onScanInvite, onContinue, onPoster, onClear }: {
-  land: ArrayLike<number> | null; status: GameStatus;
+/** The landing page; `share` is the share landing that a poster's link opens (/s), shorter and to the point. */
+export function Landing({ land, status, share, onStart, onScanInvite, onContinue, onPoster, onClear }: {
+  land: ArrayLike<number> | null; status: GameStatus; share?: boolean;
   onStart: () => void; onScanInvite: () => void; onContinue: () => void; onPoster: () => void; onClear: () => void;
 }) {
   const model = useMemo(() => buildWorld({ name: 'A', visited: SAMPLE_A, dreams: [] }, { name: 'B', visited: SAMPLE_B, dreams: [] }), []);
@@ -22,7 +23,10 @@ export function Landing({ land, status, onStart, onScanInvite, onContinue, onPos
           <Chart className="loop-ours" model={model} land={land} mode="ours" dreams={false} label="" />
         </>}
       </div>
-      <p className="lede center">{copy.landingLine}</p>
+      {share ? <p className="lede center">{copy.shareLine}</p> : <>
+        <p className="lede center">{copy.landingLine}</p>
+        <p className="meta center">{copy.landingSmall}</p>
+      </>}
       {status === 'none' && <button className="primary" onClick={onStart}>{copy.landingStart}</button>}
       {status === 'playing' && <>
         <button className="primary" onClick={onContinue}>Continue our game</button>

@@ -3,7 +3,7 @@
 // The image is committed, so the Cloudflare build doesn't need to run this.
 import { readFileSync, writeFileSync } from 'fs';
 import { createRequire } from 'module';
-import { buildWorld } from '../src/lib/shape/world';
+import { buildWorld, ghostShape } from '../src/lib/shape/world';
 import { chartSvg, LOOK } from '../src/lib/shape/chart';
 import { esc } from '../src/lib/shape/poster';
 import { copy } from '../src/data/copy';
@@ -15,7 +15,8 @@ const land: number[] = JSON.parse(readFileSync('data/land.json', 'utf8'));
 const font = (p: string) => `data:font/woff2;base64,${readFileSync(p).toString('base64')}`;
 const fontCss =
   `@font-face{font-family:'Instrument Serif';font-style:italic;src:url(${font('node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2')}) format('woff2')}` +
-  `@font-face{font-family:'Space Mono';src:url(${font('node_modules/@fontsource/space-mono/files/space-mono-latin-400-normal.woff2')}) format('woff2')}`;
+  `@font-face{font-family:'Space Mono';src:url(${font('node_modules/@fontsource/space-mono/files/space-mono-latin-400-normal.woff2')}) format('woff2')}` +
+  `@font-face{font-family:'Inter';src:url(${font('node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2')}) format('woff2')}`;
 
 const model = buildWorld({ name: 'A', visited: SAMPLE_A, dreams: [] }, { name: 'B', visited: SAMPLE_B, dreams: [] });
 
@@ -27,18 +28,24 @@ const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 for (let i = 0; i < 90; i++) s += `<circle cx="${(rnd() * W).toFixed(0)}" cy="${(rnd() * H).toFixed(0)}" r="${(rnd() * 0.8 + 0.5).toFixed(1)}" fill="#fff" fill-opacity="${(rnd() * 0.35 + 0.1).toFixed(2)}"/>`;
 
 // right: their world together
-s += chartSvg(model, { cx: 900, cy: 315, r: 245, land, mode: 'ours', view: model.view, ticks: true, dreams: false, id: 'oo' });
+// a few sample places still to explore, as hollow rings, with the ghost outline of the bigger world
+const explorePlaces = [{ id: 901, lat: 35.01, lon: 135.77 }, { id: 902, lat: 64.15, lon: -21.94 }, { id: 903, lat: 31.63, lon: -8.0 }];
+s += chartSvg(model, {
+  cx: 900, cy: 315, r: 245, land, mode: 'ours', view: model.view, ticks: true, dreams: false, id: 'oo',
+  explore: { places: explorePlaces, ghost: ghostShape(model, explorePlaces.map(p => ({ ...p, name: '', cc: '', admin: '' }))) },
+});
 
 // left: the question, the punchline, the link
 const mono = (x: number, y: number, t: string, size: number, extra = '') =>
   `<text x="${x}" y="${y}" font-family="Space Mono, monospace" font-size="${size}" letter-spacing="${(size * 0.28).toFixed(1)}" fill="${LOOK.cream}" ${extra}>${esc(t.toUpperCase())}</text>`;
 const serif = (x: number, y: number, t: string, size: number) =>
   `<text x="${x}" y="${y}" font-family="Instrument Serif, serif" font-style="italic" font-size="${size}" fill="${LOOK.cream}">${t}</text>`;
-s += mono(72, 150, copy.landingEyebrow, 18, 'fill-opacity=".7"');
-s += serif(66, 250, 'How big is', 92);
-s += serif(66, 345, 'our world?', 92);
-const [mine, eq, ours] = copy.posterPunchline;
-s += serif(70, 425, `${esc(mine)} <tspan fill="${LOOK.pink}">${esc(eq)}</tspan> ${esc(ours)}`, 40);
+s += mono(72, 140, copy.landingEyebrow, 18, 'fill-opacity=".7"');
+// the headline, "How much of their world have you seen?", over three lines
+s += serif(66, 232, 'How much of', 78);
+s += serif(66, 314, 'their world', 78);
+s += serif(66, 396, 'have you seen?', 78);
+s += `<text x="72" y="446" font-family="Inter, sans-serif" font-size="24" fill="${LOOK.cream}" fill-opacity=".8">${esc(copy.shareLine)}</text>`;
 const pillW = HOST.length * 11.6 + 44;
 s += `<rect x="70" y="487" width="${pillW.toFixed(0)}" height="46" rx="23" fill="none" stroke="${LOOK.pink}" stroke-width="2"/>`;
 s += `<text x="${(70 + pillW / 2).toFixed(0)}" y="517" text-anchor="middle" font-family="Space Mono, monospace" font-size="18" letter-spacing="1.5" fill="${LOOK.pink}">${esc(HOST)}</text>`;

@@ -14,6 +14,10 @@ export type ExploreEntry = {
   /** 1 dreams both named, 2 places from a partner's past (and places to go back to), 3 other dreams. */
   group: 1 | 2 | 3;
   went: boolean;
+  /** Who named it: 0 or 1 (by role), or 'both' for a shared dream. */
+  owner: 0 | 1 | 'both';
+  /** A place from the owner's own world (the other hasn't been): ringed on the owner's small chart. */
+  inWorld: boolean;
 };
 
 const near = (a: City, b: City) => a.id === b.id || distanceKm(a, b) <= MERGE_KM;
@@ -66,14 +70,14 @@ export function exploreList(args: {
       const origin = originText(q, owner.name, other.name);
       if (q.kind === 'past') {
         const notYet = justMet ? !alreadyShared(place, other, qs) : been[beenKey(q.id, owner.role)] === false;
-        if (notYet) out.push({ place, origin, posterOrigin: origin, group: 2, went: false, order });
+        if (notYet) out.push({ place, origin, posterOrigin: origin, group: 2, went: false, order, owner: owner.role, inWorld: true });
       } else if (q.kind === 'backTo') {
-        out.push({ place, origin, posterOrigin: origin, group: 2, went: false, order });
+        out.push({ place, origin, posterOrigin: origin, group: 2, went: false, order, owner: owner.role, inWorld: false });
       } else if (q.kind === 'dream' || q.kind === 'show') {
         const shared = nearAny(place, owner === a ? dreamsB : dreamsA);
         out.push(shared
-          ? { place, origin: 'you both dream of it', posterOrigin: 'where you both want to go', group: 1, went: false, order }
-          : { place, origin, posterOrigin: origin, group: 3, went: false, order });
+          ? { place, origin: 'you both dream of it', posterOrigin: 'where you both want to go', group: 1, went: false, order, owner: 'both', inWorld: false }
+          : { place, origin, posterOrigin: origin, group: 3, went: false, order, owner: owner.role, inWorld: q.kind === 'show' });
       }
     }
   });

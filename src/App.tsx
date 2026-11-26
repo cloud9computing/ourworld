@@ -131,7 +131,7 @@ export function App() {
           catch (e) { return (e as Error).message; }
         }} />;
     } else {
-      page = <Landing land={land} status={!g ? 'none' : g.revealDone ? 'finished' : 'playing'}
+      page = <Landing land={land} status={!g ? 'none' : g.revealDone ? 'finished' : 'playing'} share={!g && location.pathname.startsWith('/s')}
         onStart={startNew} onScanInvite={() => setView({ kind: 'scanInvite' })}
         onContinue={() => g && setView(resume(g))} onPoster={() => setView({ kind: 'poster' })}
         onClear={() => { if (confirm('Clear this game from this phone?')) { clearGame(); setG(null); } }} />;
