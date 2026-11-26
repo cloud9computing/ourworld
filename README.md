@@ -37,6 +37,7 @@ The repository is connected to Cloudflare Workers & Pages (project `ourworld`), 
 
 - `data/cities.json`: about 24,000 cities (over 15,000 people, plus capitals and a few famous small places) from GeoNames, CC BY 4.0, via the `all-the-cities` package. Rebuild with `npm run build:cities`.
 - `data/land.json`: land dots on the whole globe from Natural Earth 50m (public domain), via `world-atlas`. Rebuild with `npm run build:land` (about 2 minutes).
+- `public/og-image.jpg`: the 1200 × 630 link preview image, drawn by the app's own chart code with the sample couple in `src/data/sample.ts`. Regenerate with `npm run build:og` (needs Playwright), then bump `?v=` on the image URL in `index.html`. The image URL there is absolute and must change if the site moves to its own domain.
 - `tests/fixtures/reference.json`: output of `assets/shape_reference.py`, regenerated with `python3 scripts/export-reference-fixture.py`.
 
 ## Where things live

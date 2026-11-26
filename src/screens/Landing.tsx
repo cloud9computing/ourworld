@@ -1,13 +1,8 @@
 import { useMemo } from 'react';
 import { copy } from '../data/copy';
 import { buildWorld } from '../lib/shape/world';
-import type { Place } from '../lib/shape/polygon';
+import { SAMPLE_A, SAMPLE_B } from '../data/sample';
 import { Chart } from '../components/Chart';
-
-// Sample journeys for the landing loop (made-up couple, not anyone's data).
-const P = (id: number, name: string, lat: number, lon: number, cc: string): Place => ({ id, name, lat, lon, cc, admin: '' });
-const SAMPLE_A = [P(1, 'Goa', 15.5, 73.83, 'IN'), P(2, 'Vienna', 48.21, 16.37, 'AT'), P(3, 'Seville', 37.39, -5.99, 'ES'), P(4, 'Portland', 45.52, -122.68, 'US'), P(5, 'Langkawi', 6.35, 99.8, 'MY')];
-const SAMPLE_B = [P(1, 'Goa', 15.5, 73.83, 'IN'), P(6, 'Wayanad', 11.69, 76.08, 'IN'), P(7, 'Barcelona', 41.39, 2.17, 'ES'), P(8, 'Yellowstone', 44.46, -110.83, 'US'), P(9, 'Colombo', 6.93, 79.85, 'LK')];
 
 export type GameStatus = 'none' | 'playing' | 'finished';
 

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "build:cities": "node scripts/build-city-index.mjs",
-    "build:land": "node scripts/build-land-dots.mjs"
+    "build:land": "node scripts/build-land-dots.mjs",
+    "build:og": "vite-node scripts/og-image.ts"
   },
   "dependencies": {
     "@fontsource/instrument-serif": "^5.1.0",
