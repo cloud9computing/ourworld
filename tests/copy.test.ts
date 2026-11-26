@@ -20,11 +20,12 @@ describe('reveal and poster copy', () => {
 describe('speclet v4 copy', () => {
   it('uses the new lines exactly', () => {
     expect(copy.landingEyebrow).toBe('A game for two · 10 minutes');
-    expect(copy.landingTitle).toBe('How much of their world have you seen?');
-    expect(copy.landingLine).toBe('Twelve questions about the places that made you, and the ones you dream of. Answer in secret on your own phones, then swap and discover what’s waiting in each other’s worlds.');
-    expect(copy.landingSmall).toBe('No sign-up · Nothing leaves your phones');
+    expect(copy.landingTitle).toBe('Our world is bigger than we think.');
+    expect(copy.landingLine).toBe('Twelve questions each, answered in secret. Then swap and see how much is still waiting to be explored.');
+    expect('landingSmall' in copy).toBe(false); // removed in v5
+    expect(copy.inviteShare).toBe('Our world is bigger than we think. Let’s find out.');
     expect(copy.landingStart).toBe('Find out together');
-    expect(copy.haveInvite).toBe('Got a code from your partner? Scan it.');
+    expect(copy.haveInvite).toBe('Got a code? Scan it.');
     expect(copy.joinRule3).toBe('Swap codes and discover what’s waiting in each other’s worlds.');
     expect(copy.shareLine).toBe('A 10-minute game for two. No sign-up.');
     expect(copy.posterCta).toBe('What’s waiting in yours?');
@@ -33,16 +34,16 @@ describe('speclet v4 copy', () => {
   it('carries the link preview title and description in index.html', async () => {
     const { readFileSync } = await import('fs');
     const html = readFileSync('index.html', 'utf8');
-    expect(html).toContain('<title>How much of their world have you seen?</title>');
-    expect(html).toContain('content="How much of their world have you seen?"');
-    expect(html).toContain('content="A 10-minute game for two. Answer on your own phones, swap codes, and discover what’s waiting in each other’s worlds."');
+    expect(html).toContain('<title>Our world is bigger than we think.</title>');
+    expect(html).toContain('content="Our world is bigger than we think."');
+    expect(html).toContain('content="A 10-minute game for two. Answer in secret, swap, and see how much is still waiting to be explored."');
   });
 
-  it('has no "How big is", "Find your shape" or "A date for two phones" anywhere', async () => {
+  it('has no "How big is", "Find your shape", "A date for two phones" or "How much of their world have you seen?" anywhere', async () => {
     const { readFileSync, readdirSync, statSync } = await import('fs');
     const files: string[] = ['index.html', 'scripts/og-image.ts'];
     const walk = (d: string) => readdirSync(d).forEach(f => { const p = `${d}/${f}`; statSync(p).isDirectory() ? walk(p) : files.push(p); });
     walk('src');
-    for (const f of files) expect(readFileSync(f, 'utf8'), f).not.toMatch(/how big|find your shape|a date for two phones/i);
+    for (const f of files) expect(readFileSync(f, 'utf8'), f).not.toMatch(/how big|find your shape|a date for two phones|how much of their world/i);
   });
 });

@@ -41,10 +41,10 @@ const mono = (x: number, y: number, t: string, size: number, extra = '') =>
 const serif = (x: number, y: number, t: string, size: number) =>
   `<text x="${x}" y="${y}" font-family="Instrument Serif, serif" font-style="italic" font-size="${size}" fill="${LOOK.cream}">${t}</text>`;
 s += mono(72, 140, copy.landingEyebrow, 18, 'fill-opacity=".7"');
-// the headline, "How much of their world have you seen?", over three lines
-s += serif(66, 232, 'How much of', 78);
-s += serif(66, 314, 'their world', 78);
-s += serif(66, 396, 'have you seen?', 78);
+// the headline, "Our world is bigger than we think.", over three lines
+s += serif(66, 232, 'Our world is', 80);
+s += serif(66, 316, 'bigger than', 80);
+s += serif(66, 400, 'we think.', 80);
 s += `<text x="72" y="446" font-family="Inter, sans-serif" font-size="24" fill="${LOOK.cream}" fill-opacity=".8">${esc(copy.shareLine)}</text>`;
 const pillW = HOST.length * 11.6 + 44;
 s += `<rect x="70" y="487" width="${pillW.toFixed(0)}" height="46" rx="23" fill="none" stroke="${LOOK.pink}" stroke-width="2"/>`;

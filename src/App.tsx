@@ -160,7 +160,7 @@ export function App() {
   let page: JSX.Element | null = null;
   switch (view.kind) {
     case 'invite':
-      page = <Invite from={g.myName} partner={g.partnerName} onBack={() => setView({ kind: 'home' })}
+      page = <Invite partner={g.partnerName} onBack={() => setView({ kind: 'home' })}
         link={inviteLink(location.origin, { gameId: g.gameId, tier: g.tier, round: g.round, from: g.myName, to: g.partnerName, questions: g.questions, indexVersion: index?.version ?? '00000000' })}
         onStart={() => { update({ ...g, started: true }); setView({ kind: 'q', i: 0 }); }} />;
       break;

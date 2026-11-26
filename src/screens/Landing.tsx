@@ -15,7 +15,7 @@ export function Landing({ land, status, share, onStart, onScanInvite, onContinue
   return (
     <main className="screen landing">
       <p className="eyebrow center">{copy.landingEyebrow}</p>
-      <h1 className="display center">{copy.landingTitle}</h1>
+      <h1 className="display center landing-title">{copy.landingTitle}</h1>
       <div className="loop" aria-label="Two silver shapes slide together into one pink shape" role="img">
         {land && <>
           <Chart className="loop-a" model={model} land={land} mode="a" dreams={false} label="" />
@@ -23,10 +23,7 @@ export function Landing({ land, status, share, onStart, onScanInvite, onContinue
           <Chart className="loop-ours" model={model} land={land} mode="ours" dreams={false} label="" />
         </>}
       </div>
-      {share ? <p className="lede center">{copy.shareLine}</p> : <>
-        <p className="lede center">{copy.landingLine}</p>
-        <p className="meta center">{copy.landingSmall}</p>
-      </>}
+      <p className="lede center">{share ? copy.shareLine : copy.landingLine}</p>
       {status === 'none' && <button className="primary" onClick={onStart}>{copy.landingStart}</button>}
       {status === 'playing' && <>
         <button className="primary" onClick={onContinue}>Continue our game</button>
