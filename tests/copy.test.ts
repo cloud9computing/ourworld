@@ -9,6 +9,7 @@ describe('reveal and poster copy', () => {
   const lines: string[] = [];
   for (const v of Object.values(copy)) {
     if (typeof v === 'string') lines.push(v);
+    else if (Array.isArray(v)) lines.push(v.join(' '));
     else lines.push((v as (...a: unknown[]) => string)('Ravi', 'Goa', 'Tara', 'Langkawi'), (v as (...a: unknown[]) => string)(3, 2));
   }
   it.each(lines)('"%s" frames differences warmly and never scores', line => {

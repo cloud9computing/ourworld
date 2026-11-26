@@ -6,11 +6,13 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 export const copy = {
   brand: 'Our World',
-  landingEyebrow: 'A date for two phones',
-  landingTitle: 'Find your shape',
-  landingLine: 'Answer 12 questions about the places in your lives, on your own phones. Then swap, and see the world you make together.',
-  landingMeta: 'About 10 minutes · No sign-up',
-  haveInvite: 'Have an invite? Scan your partner’s code.',
+  landingEyebrow: 'A game for two · 10 minutes',
+  landingTitle: 'How big is our world?',
+  landingLine: 'Twelve questions about the places that made you. Answer in secret on your own phones, then swap and watch your worlds become one.',
+  landingStart: 'Find out together',
+  haveInvite: 'Got a code from your partner? Scan it.',
+  /** Link preview title (index.html carries the same text, since link previews don't run scripts). */
+  previewTitle: 'How big is our world? A 10-minute game for two.',
   setupHelper: 'We use this to pick questions that are more likely to surprise you.',
   inviteLine: (p: string) => `Have ${p} scan this with a phone camera. You’ll both get the same 12 questions.`,
   partnerIn: (p: string) => `${p}’s in. Start`,
@@ -53,6 +55,8 @@ export const copy = {
   posterTop: 'Seen from the North Pole',
   posterCounts: (c: { places: number; countries: number; continents: number; dreams: number }) =>
     [plural(c.places, 'place'), plural(c.countries, 'country', 'countries'), plural(c.continents, 'continent'), ...(c.dreams ? [plural(c.dreams, 'dream')] : [])].join(' · '),
-  posterCta: 'Do yours together tonight',
+  /** The punchline under the combined chart; the "=" is drawn in pink. */
+  posterPunchline: ['Mine + yours', '=', 'ours'] as const,
+  posterCta: 'How big is yours?',
   altText: (places: number) => `A glowing pink shape joining ${places} places on a faded world map seen from the North Pole, with each partner's own world in silver`,
 };

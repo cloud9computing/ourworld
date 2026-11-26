@@ -52,7 +52,7 @@ async function answerAll(page, cities, shots) {
   await ravi.locator('.loop svg').first().waitFor();
   await ravi.waitForTimeout(1500);
   await shot(ravi, '01-landing.png');
-  await ravi.getByRole('button', { name: 'Start' }).click();
+  await ravi.getByRole('button', { name: 'Find out together' }).click();
   await ravi.getByLabel('Your name').fill('Ravi');
   await ravi.getByLabel('Your partner').fill('Tara');
   await ravi.getByRole('button', { name: '3–7 years' }).click();

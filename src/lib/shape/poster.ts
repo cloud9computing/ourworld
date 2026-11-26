@@ -46,7 +46,7 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
     s += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rr.toFixed(1)}" fill="#fff" fill-opacity="${op.toFixed(2)}"/>`;
   }
 
-  // header: the line, then the names (or "Mine + yours = ours" when names are hidden)
+  // header: the line, then the names (or "Our world" when names are hidden)
   s += mono(W / 2, story ? 108 : 92, copy.posterTop, 24, 'fill-opacity=".65"');
   const nameY = story ? 250 : 210;
   if (o.showNames) {
@@ -61,7 +61,7 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
       s += serif(W / 2, nameY, esc(nb), size);
     }
   } else {
-    s += serif(W / 2, nameY, `Mine + yours <tspan fill="${LOOK.pink}">=</tspan> ours`, story ? 112 : 96);
+    s += serif(W / 2, nameY, esc(copy.ourWorld), story ? 130 : 110);
   }
 
   if (story) {
@@ -83,7 +83,8 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
   // = ours
   s += chartSvg(m, { cx: W / 2, cy: big.cy, r: big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, id: 'po' });
   const titleY = story ? 1672 : 1188;
-  s += serif(W / 2, titleY, esc(copy.ourWorld), story ? 84 : 64);
+  const [mine, eq, ours] = copy.posterPunchline;
+  s += serif(W / 2, titleY, `${esc(mine)} <tspan fill="${LOOK.pink}">${esc(eq)}</tspan> ${esc(ours)}`, story ? 84 : 64);
   const counts = copy.posterCounts(m.counts);
   // Space Mono: 0.6 em per character plus the letter spacing; keep the line inside the side margins
   const countSize = Math.min(story ? 22 : 19, (W - 160) / (counts.length * 0.92));
