@@ -1,6 +1,7 @@
 // Runtime assets: the land dots and the fonts embedded into exported posters.
 import serifUrl from '@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2?url';
 import monoUrl from '@fontsource/space-mono/files/space-mono-latin-400-normal.woff2?url';
+import interUrl from '@fontsource/inter/files/inter-latin-400-normal.woff2?url';
 // Content-hashed at build time, like the city list.
 import landUrl from '../../data/land.json?url';
 
@@ -18,9 +19,10 @@ async function dataUrl(url: string): Promise<string> {
 let fontCss: Promise<string> | null = null;
 /** @font-face rules with the font files inlined, because an SVG drawn as an image can't load fonts itself. */
 export function loadFontCss(): Promise<string> {
-  fontCss ??= Promise.all([dataUrl(serifUrl), dataUrl(monoUrl)]).then(([serif, mono]) =>
+  fontCss ??= Promise.all([dataUrl(serifUrl), dataUrl(monoUrl), dataUrl(interUrl)]).then(([serif, mono, inter]) =>
     `@font-face{font-family:'Instrument Serif';font-style:italic;src:url(${serif}) format('woff2')}` +
-    `@font-face{font-family:'Space Mono';font-style:normal;src:url(${mono}) format('woff2')}`);
+    `@font-face{font-family:'Space Mono';font-style:normal;src:url(${mono}) format('woff2')}` +
+    `@font-face{font-family:'Inter';font-style:normal;font-weight:400;src:url(${inter}) format('woff2')}`);
   return fontCss;
 }
 

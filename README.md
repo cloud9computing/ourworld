@@ -4,7 +4,7 @@ A game for two: "How big is our world?" One partner starts a game and brings the
 
 There is no backend. Answers stay on each phone, and the codes carry them after the `#` in a link, which browsers never send to a server.
 
-Requirements: `docs/PRD-v2.md` (current), with mocks in `docs/mocks/` and boards in `docs/boards/`. `docs/GAP_LIST_v2.md` records what v2 changed. `docs/PRD.md` is the original PRD.
+Requirements: `docs/PRD-v2.md`, updated by `docs/PRD-changes-v3.md` (which wins where they differ), with the questions in `docs/question-sets-by-tenure.md`. Mocks are in `docs/mocks/` and boards in `docs/boards/`. `docs/GAP_LIST_v2.md` records what v2 changed. `docs/PRD.md` is the original PRD.
 
 ## Run it
 
@@ -44,9 +44,10 @@ The repository is connected to Cloudflare Workers & Pages (project `ourworld`), 
 
 | Path | What |
 |---|---|
-| `src/data/bank.ts` | The question bank: acts, tiers, starred and about-partner questions. Ids are stable (they travel in the invite) |
+| `src/data/bank.ts` | The six tenure sets of 12 questions, with ask-your-partner prompts (two or more each, rotated between games) and origin phrases for places to explore. Ids are stable (they travel in the invite) |
+| `src/lib/explore.ts` | Places to explore: what goes in, what's left out, merging and order |
 | `src/data/copy.ts` | All reveal and poster copy (tested: no scoring, no "wrong", no exclamation marks) |
-| `src/lib/game/select.ts` | Picks 3 + 6 + 3 questions for a game, seeded by the game id and shaped by the tier |
+| `src/lib/game/select.ts` | The tier's fixed set of 12 |
 | `src/lib/swap/codec.ts` | The invite code (`#j=`) and the answer code (`#a=`), with checksums |
 | `src/state/game.ts` | The game kept on each phone, and the sealing rule (partner answers only after your own seal, same game, other role) |
 | `src/lib/shape/` | North-polar projection, merging, the loop (`geo.ts`, `polygon.ts`, `world.ts`), chart drawing (`chart.ts`) and the poster (`poster.ts`) |

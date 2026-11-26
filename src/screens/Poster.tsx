@@ -3,25 +3,29 @@ import { copy } from '../data/copy';
 import { buildWorld } from '../lib/shape/world';
 import { FORMATS, posterSvg, type PosterFormat } from '../lib/shape/poster';
 import { loadFontCss, svgToPng } from '../lib/assets';
-import type { Person } from '../state/people';
+import { mentions, type Person } from '../state/people';
+import { exploreCount, nextToExplore, type ExploreEntry } from '../lib/explore';
 
-export function Poster({ a, b, land, continentOf, onPlayAgain, onClear, onBack }: {
-  a: Person; b: Person; land: ArrayLike<number>; continentOf: (cc: string) => string;
-  onPlayAgain: () => void; onClear: () => void; onBack: () => void;
+export function Poster({ a, b, land, continentOf, explore, onExplore, onPlayAgain, onClear, onBack }: {
+  a: Person; b: Person; land: ArrayLike<number>; continentOf: (cc: string) => string; explore: ExploreEntry[];
+  onExplore: () => void; onPlayAgain: () => void; onClear: () => void; onBack: () => void;
 }) {
   const [format, setFormat] = useState<PosterFormat>('story');
   const [showNames, setShowNames] = useState(true);
+  const [showPlace, setShowPlace] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const model = useMemo(() => buildWorld(a.places, b.places, continentOf), [a, b, continentOf]);
+  const model = useMemo(() => buildWorld(a.places, b.places, { continentOf, mentions: mentions(a, b) }), [a, b, continentOf]);
   const link = location.origin;
   const names: [string, string] = [a.name, b.name];
-  const preview = useMemo(() => posterSvg(model, { format, names, showNames, land, link }), [model, format, showNames, land, link]); // eslint-disable-line react-hooks/exhaustive-deps
+  const count = exploreCount(explore), next = nextToExplore(explore);
+  const ex = useMemo(() => ({ count, next: next && { name: next.place.name, origin: next.posterOrigin } }), [count, next]);
+  const preview = useMemo(() => posterSvg(model, { format, names, showNames, showPlace, explore: ex, land, link }), [model, format, showNames, showPlace, ex, land, link]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const makePng = async () => {
     const fontCss = await loadFontCss();
     const { w, h } = FORMATS[format];
-    return svgToPng(posterSvg(model, { format, names, showNames, land, link, fontCss }), w, h);
+    return svgToPng(posterSvg(model, { format, names, showNames, showPlace, explore: ex, land, link, fontCss }), w, h);
   };
   const run = async (share: boolean) => {
     setBusy(true); setError('');
@@ -39,7 +43,7 @@ export function Poster({ a, b, land, continentOf, onPlayAgain, onClear, onBack }
   return (
     <main className="screen poster">
       <div className="topbar"><button className="link" onClick={onBack}>← Back</button><span className="eyebrow pink">Your poster</span></div>
-      <div className={`poster-preview ${format}`} role="img" aria-label={copy.altText(model.counts.places)}
+      <div className={`poster-preview ${format}`} role="img" aria-label={copy.altText(model.counts.places, count)}
         dangerouslySetInnerHTML={{ __html: preview.replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto" ') }} />
       <div className="toggles">
         <div className="seg">
@@ -47,8 +51,10 @@ export function Poster({ a, b, land, continentOf, onPlayAgain, onClear, onBack }
           <button className={format === 'feed' ? 'on' : ''} onClick={() => setFormat('feed')}>Post</button>
         </div>
         <label className="check"><input type="checkbox" checked={showNames} onChange={e => setShowNames(e.target.checked)} /> Show our names</label>
+        <label className="check"><input type="checkbox" checked={showPlace} onChange={e => setShowPlace(e.target.checked)} /> Show place names</label>
       </div>
       {error && <p className="error">{error}</p>}
+      <button className="secondary" onClick={onExplore}>{copy.yourPlacesToExplore} ({count})</button>
       <button className="primary" disabled={busy} onClick={() => run(true)}>{busy ? 'Making it…' : 'Share'}</button>
       <button className="secondary" disabled={busy} onClick={() => run(false)}>Save image</button>
       <div className="row">

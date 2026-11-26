@@ -3,6 +3,7 @@
 import { distanceKm, polarProjection, type Projection, type XY } from './geo';
 import { boundingCentre, buildShape, mergeNearby, smoothSegments, type Dot, type Place, type Shape } from './polygon';
 
+
 export const ROTATION = -43;
 
 export type PersonPlaces = { name: string; visited: Place[]; dreams: Place[] };
@@ -22,6 +23,16 @@ export type WorldModel = {
   ours: Shape;
   view: View;
   counts: { places: number; countries: number; continents: number; dreams: number; a: number; b: number };
+  /** Share of the way around the world, 0..1, or null with fewer than 3 places ("Just getting started"). */
+  aroundWorld: number | null;
+  /** The one shared place whose name goes on the poster, if any. */
+  featured?: TaggedDot;
+};
+
+export type WorldOptions = {
+  continentOf?: (cc: string) => string;
+  /** Every answer's place in order, for picking the featured star. */
+  mentions?: Place[];
 };
 
 /** Fraction of the frame radius kept clear around the farthest point (70 px on a 400 px chart). */
@@ -47,7 +58,9 @@ export function fitView(points: XY[], extras: XY[] = [], margin = MARGIN, minRea
   return { ox: c.x, oy: c.y, reach: Math.max(base, Math.min(farExtra / 0.96, base * 1.3)) };
 }
 
-export function buildWorld(a: PersonPlaces, b?: PersonPlaces, continentOf: (cc: string) => string = () => ''): WorldModel {
+export function buildWorld(a: PersonPlaces, b?: PersonPlaces, options: WorldOptions | ((cc: string) => string) = {}): WorldModel {
+  const opts: WorldOptions = typeof options === 'function' ? { continentOf: options } : options;
+  const continentOf = opts.continentOf ?? (() => '');
   const project = polarProjection(ROTATION);
   const va = a.visited, vb = b?.visited ?? [];
   const dots = tag(mergeNearby([...va, ...vb]), new Set(va.map(p => p.id)), new Set(vb.map(p => p.id)));
@@ -79,5 +92,36 @@ export function buildWorld(a: PersonPlaces, b?: PersonPlaces, continentOf: (cc: 
       a: mine('a').length,
       b: mine('b').length,
     },
+    aroundWorld: dots.length < 3 ? null : aroundTheWorld(dots.map(d => d.lon)),
+    featured: opts.mentions ? featuredPlace(dots, opts.mentions) : undefined,
   };
+}
+
+/**
+ * How far around the world the places reach: (360° − the largest east–west gap between them) ÷ 360.
+ * Places strung right round the globe come close to 1; places in one region stay small.
+ */
+export function aroundTheWorld(longitudes: number[]): number {
+  if (longitudes.length < 2) return 0;
+  const lons = longitudes.map(l => ((l % 360) + 360) % 360).sort((x, y) => x - y);
+  let gap = 360 - lons[lons.length - 1] + lons[0];
+  for (let i = 1; i < lons.length; i++) gap = Math.max(gap, lons[i] - lons[i - 1]);
+  return (360 - gap) / 360;
+}
+
+/**
+ * The one star that gets its name on the poster: among places both partners named, the one named in the
+ * most answers; ties go to the one whose first mention comes earliest. `mentions` lists every answer's
+ * place in order (question by question, first partner then second, then the lists).
+ */
+export function featuredPlace<T extends Place & { members: Place[]; who: string }>(dots: T[], mentions: Place[]): T | undefined {
+  let best: { d: T; count: number; first: number } | undefined;
+  for (const d of dots) {
+    if (d.who !== 'both') continue;
+    const ids = new Set(d.members.map(m => m.id));
+    let count = 0, first = Infinity;
+    mentions.forEach((p, i) => { if (ids.has(p.id)) { count++; first = Math.min(first, i); } });
+    if (!best || count > best.count || (count === best.count && first < best.first)) best = { d, count, first };
+  }
+  return best?.d;
 }

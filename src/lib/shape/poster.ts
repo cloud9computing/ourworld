@@ -15,6 +15,10 @@ export type PosterOptions = {
   format: PosterFormat;
   names: [string, string];
   showNames: boolean;
+  /** The one place name on the poster, on the featured star, and the place in the "Next" line. Off hides both. */
+  showPlace: boolean;
+  /** Places still to explore, and the first of them with where it came from. */
+  explore: { count: number; next?: { name: string; origin: string } };
   land: ArrayLike<number>;
   link: string;
   fontCss?: string;
@@ -27,17 +31,20 @@ const serifWidth = (text: string, size: number) => text.length * size * 0.42;
 
 const mono = (x: number, y: number, text: string, size: number, extra = '') =>
   `<text x="${x}" y="${y}" text-anchor="middle" font-family="Space Mono, monospace" font-size="${size}" letter-spacing="${(size * 0.32).toFixed(1)}" fill="${LOOK.cream}" ${extra}>${esc(text.toUpperCase())}</text>`;
-const serif = (x: number, y: number, text: string, size: number, extra = '') =>
-  `<text x="${x}" y="${y}" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="${size}" fill="${LOOK.cream}" ${extra}>${text}</text>`;
+const serif = (x: number, y: number, text: string, size: number, fill: string = LOOK.cream) =>
+  `<text x="${x}" y="${y}" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="${size}" fill="${fill}">${text}</text>`;
 
 export function posterSvg(m: WorldModel, o: PosterOptions): string {
   const { w: W, h: H } = FORMATS[o.format];
   const story = o.format === 'story';
   const [na, nb] = o.names.map(n => n.trim() || 'You');
-  const big = story ? { cy: 1180, r: 400 } : { cy: 690, r: 420 };
+  // story: two small charts, then the large one; feed: the large one only
+  const L = story
+    ? { big: { cy: 930, r: 360 }, hero: 1396, share: 1572, of: 1624, support: 1688, dream: 1752, cta: 1852 }
+    : { big: { cy: 450, r: 345 }, hero: 900, share: 1050, of: 1098, support: 1154, dream: 1208, cta: 1300 };
   let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
   if (o.fontCss) s += `<style>${o.fontCss}</style>`;
-  s += `<defs><radialGradient id="neb" cx="540" cy="${big.cy}" r="${H * 0.55}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3a0a2a" stop-opacity=".8"/><stop offset=".6" stop-color="#150818" stop-opacity=".5"/><stop offset="1" stop-color="${LOOK.bg}" stop-opacity="0"/></radialGradient></defs>`;
+  s += `<defs><radialGradient id="neb" cx="540" cy="${L.big.cy}" r="${H * 0.55}" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#3a0a2a" stop-opacity=".8"/><stop offset=".6" stop-color="#150818" stop-opacity=".5"/><stop offset="1" stop-color="${LOOK.bg}" stop-opacity="0"/></radialGradient></defs>`;
   s += `<rect width="${W}" height="${H}" fill="${LOOK.bg}"/><rect width="${W}" height="${H}" fill="url(#neb)"/>`;
   let seed = 7;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -46,58 +53,75 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
     s += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rr.toFixed(1)}" fill="#fff" fill-opacity="${op.toFixed(2)}"/>`;
   }
 
-  // header: the line, then the names (or "Our world" when names are hidden)
-  s += mono(W / 2, story ? 108 : 92, copy.posterTop, 24, 'fill-opacity=".65"');
-  const nameY = story ? 250 : 210;
-  if (o.showNames) {
-    const line = `${na} & ${nb}`;
-    let size = story ? 150 : 120;
-    while (size > 64 && serifWidth(line, size) > W - 140) size -= 4;
-    if (serifWidth(line, size) <= W - 140) {
-      s += serif(W / 2, nameY, `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan> ${esc(nb)}`, size);
-    } else {
-      size = story ? 92 : 78;
-      s += serif(W / 2, nameY - size * 0.95, `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan>`, size);
-      s += serif(W / 2, nameY, esc(nb), size);
-    }
-  } else {
-    s += serif(W / 2, nameY, esc(copy.ourWorld), story ? 130 : 110);
-  }
-
+  // 1. mine + yours: two small silver charts, at the same scale and centre as the large one
   if (story) {
-    // mine + yours
-    const small = { r: 175, cy: 520, ax: 282, bx: 798 };
+    const small = { r: 172, cy: 250, ax: 285, bx: 795 };
     s += chartSvg(m, { cx: small.ax, cy: small.cy, r: small.r, land: o.land, mode: 'a', view: m.view, id: 'pa' });
     s += chartSvg(m, { cx: small.bx, cy: small.cy, r: small.r, land: o.land, mode: 'b', view: m.view, id: 'pb' });
     s += `<text x="${W / 2}" y="${small.cy + 22}" text-anchor="middle" font-family="Inter, sans-serif" font-size="64" font-weight="300" fill="${LOOK.cream}">+</text>`;
-    const la = o.showNames ? copy.yourWorld(na) : 'Mine', lb = o.showNames ? copy.yourWorld(nb) : 'Yours';
-    for (const [x, label, n] of [[small.ax, la, m.counts.a], [small.bx, lb, m.counts.b]] as [number, string, number][]) {
+    const la = o.showNames ? copy.yourWorld(na) : copy.mine, lb = o.showNames ? copy.yourWorld(nb) : copy.yours;
+    for (const [x, label] of [[small.ax, la], [small.bx, lb]] as [number, string][]) {
       let size = 46;
-      while (size > 28 && serifWidth(label, size) > 400) size -= 2;
-      s += serif(x, 742, esc(label), size);
-      s += mono(x, 780, copy.placesCount(n), 19, 'fill-opacity=".85"');
+      while (size > 28 && serifWidth(label, size) > 420) size -= 2;
+      s += serif(x, 478, esc(label), size);
     }
-    s += `<rect x="${W / 2 - 18}" y="726" width="36" height="5" rx="2" fill="${LOOK.pink}"/><rect x="${W / 2 - 18}" y="740" width="36" height="5" rx="2" fill="${LOOK.pink}"/>`;
   }
 
-  // = ours
-  s += chartSvg(m, { cx: W / 2, cy: big.cy, r: big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, id: 'po' });
-  const titleY = story ? 1672 : 1188;
-  const [mine, eq, ours] = copy.posterPunchline;
-  s += serif(W / 2, titleY, `${esc(mine)} <tspan fill="${LOOK.pink}">${esc(eq)}</tspan> ${esc(ours)}`, story ? 84 : 64);
-  const counts = copy.posterCounts(m.counts);
-  // Space Mono: 0.6 em per character plus the letter spacing; keep the line inside the side margins
-  const countSize = Math.min(story ? 22 : 19, (W - 160) / (counts.length * 0.92));
-  s += mono(W / 2, titleY + (story ? 46 : 40), counts, Math.round(countSize * 10) / 10);
+  // 2. the large pink chart, with one shared place named
+  s += chartSvg(m, { cx: W / 2, cy: L.big.cy, r: L.big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, id: 'po' });
+  if (o.showPlace && m.featured) s += placeLabel(m, L.big, W);
 
-  // call to action and link
+  // 3. hero: whose world, how much is still to explore in each other's worlds
+  const title = o.showNames ? `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan> ${esc(copy.yourWorld(nb))}` : esc(copy.ourWorld);
+  const titleText = o.showNames ? `${na} & ${copy.yourWorld(nb)}` : copy.ourWorld;
+  let titleSize = story ? 62 : 54;
+  while (titleSize > 34 && serifWidth(titleText, titleSize) > W - 160) titleSize -= 2;
+  s += serif(W / 2, L.hero, title, titleSize);
+  const around = m.aroundWorld === null ? null : `${Math.round(m.aroundWorld * 100)}%`;
+  const bigSize = story ? 200 : 170;
+  if (o.explore.count > 0) {
+    s += serif(W / 2, L.share, String(o.explore.count), bigSize, LOOK.pink);
+    s += mono(W / 2, L.of, copy.toExplore, story ? 21 : 19, 'fill-opacity=".85"');
+  } else if (around) {
+    // nothing left to explore: the hero is how far around the world they reach
+    s += serif(W / 2, L.share, esc(around), bigSize, LOOK.pink);
+    s += mono(W / 2, L.of, copy.ofTheWayAround, story ? 21 : 19, 'fill-opacity=".85"');
+  } else {
+    s += serif(W / 2, L.share - (story ? 40 : 34), esc(copy.justStarted), story ? 96 : 80, LOOK.pink);
+  }
+  // the around-the-world share is in the hero when nothing is left to explore, so it isn't repeated here
+  const support = copy.supportLine(m.counts.places, m.counts.countries, around ? copy.aroundWorld(around) : null, o.explore.count > 0 || !around);
+  let supportSize = story ? 26 : 23;
+  while (supportSize > 16 && support.length * supportSize * 0.5 > W - 140) supportSize -= 1;
+  s += `<text x="${W / 2}" y="${L.support}" text-anchor="middle" font-family="Inter, sans-serif" font-size="${supportSize}" fill="${LOOK.cream}" fill-opacity=".85">${esc(support)}</text>`;
+
+  // 4. the next place to explore, and whose world it comes from
+  const line = o.explore.count === 0 ? copy.exploredAll
+    : !o.showPlace || !o.explore.next ? copy.nextSomewhere
+      : copy.nextLine(o.explore.next.name, o.explore.next.origin);
+  let size = story ? 38 : 34;
+  while (size > 22 && serifWidth(line, size) > W - 140) size -= 2;
+  s += serif(W / 2, L.dream, esc(line), size);
+
+  // 5. footer: the challenge and the link
   const host = o.link.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  const ctaY = story ? 1830 : 1300, ctaSize = story ? 46 : 38;
+  const ctaSize = story ? 46 : 38;
   const pillW = Math.max(200, host.length * 13 + 48), ctaW = serifWidth(copy.posterCta, ctaSize);
   const total = ctaW + 28 + pillW, x0 = (W - total) / 2;
-  s += `<text x="${(x0 + ctaW / 2).toFixed(0)}" y="${ctaY}" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="${ctaSize}" fill="${LOOK.cream}">${esc(copy.posterCta)}</text>`;
+  s += `<text x="${(x0 + ctaW / 2).toFixed(0)}" y="${L.cta}" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="${ctaSize}" fill="${LOOK.cream}">${esc(copy.posterCta)}</text>`;
   const px = x0 + ctaW + 28;
-  s += `<rect x="${px.toFixed(0)}" y="${ctaY - 34}" width="${pillW.toFixed(0)}" height="48" rx="24" fill="none" stroke="${LOOK.pink}" stroke-width="2"/>`;
-  s += `<text x="${(px + pillW / 2).toFixed(0)}" y="${ctaY - 3}" text-anchor="middle" font-family="Space Mono, monospace" font-size="20" letter-spacing="2" fill="${LOOK.pink}">${esc(host)}</text>`;
+  s += `<rect x="${px.toFixed(0)}" y="${L.cta - 34}" width="${pillW.toFixed(0)}" height="48" rx="24" fill="none" stroke="${LOOK.pink}" stroke-width="2"/>`;
+  s += `<text x="${(px + pillW / 2).toFixed(0)}" y="${L.cta - 3}" text-anchor="middle" font-family="Space Mono, monospace" font-size="20" letter-spacing="2" fill="${LOOK.pink}">${esc(host)}</text>`;
   return s + `</svg>`;
+}
+
+/** The featured star's name, beside the star, kept inside the canvas. */
+function placeLabel(m: WorldModel, big: { cy: number; r: number }, W: number): string {
+  const f = m.featured!;
+  const k = big.r / m.view.reach, p = m.project(f);
+  const x = W / 2 + (p.x - m.view.ox) * k, y = big.cy + (p.y - m.view.oy) * k;
+  const text = f.name.toUpperCase(), size = 20, tw = text.length * size * 0.74;
+  const right = x + 22 + tw < W - 30;
+  const lx = right ? x + 22 : x - 22 - tw;
+  return `<text x="${lx.toFixed(0)}" y="${(y + size * 0.35).toFixed(0)}" font-family="Space Mono, monospace" font-size="${size}" letter-spacing="${(size * 0.14).toFixed(1)}" fill="${LOOK.cream}">${esc(text)}</text>`;
 }
