@@ -1,10 +1,12 @@
 // Runtime assets: the land dots and the fonts embedded into exported posters.
 import serifUrl from '@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2?url';
 import monoUrl from '@fontsource/space-mono/files/space-mono-latin-400-normal.woff2?url';
+// Content-hashed at build time, like the city list.
+import landUrl from '../../data/land.json?url';
 
 let land: Promise<number[]> | null = null;
 export function loadLand(): Promise<number[]> {
-  land ??= fetch('/data/land.json').then(r => r.json());
+  land ??= fetch(landUrl).then(r => { if (!r.ok) throw new Error('Could not load the map'); return r.json(); });
   return land;
 }
 

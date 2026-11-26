@@ -1,4 +1,4 @@
-// Builds public/data/land.json: evenly spaced points on the sphere that fall on land
+// Builds data/land.json: evenly spaced points on the sphere that fall on land
 // (Natural Earth 50m via world-atlas, public domain). Output: flat [lon, lat, lon, lat, ...].
 import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
@@ -27,5 +27,5 @@ for (let i = 0; i < N; i++) {
     if (geoContains(p.g, [lon, lat])) { out.push(+lon.toFixed(2), +lat.toFixed(2)); break; }
   }
 }
-writeFileSync('public/data/land.json', JSON.stringify(out));
+writeFileSync('data/land.json', JSON.stringify(out));
 console.log(`wrote ${out.length / 2} land dots from ${N} samples`);

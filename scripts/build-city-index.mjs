@@ -1,4 +1,4 @@
-// Builds public/data/cities.json from GeoNames data (via the all-the-cities package, CC BY 4.0 GeoNames).
+// Builds data/cities.json from GeoNames data (via the all-the-cities package, CC BY 4.0 GeoNames).
 // Row: [geonameId, name, altName, countryCode, adminCode, lat, lon, population, isCapital, timeZoneIndex]
 // Also: tz (IANA time zone names), cont (country -> continent code), small (countries small enough
 // that two cities in them count as "the same corner").
@@ -61,5 +61,5 @@ for (const [cc, pts] of byCc) {
 
 const body = JSON.stringify({ tz: tzNames, cont, small: small.sort(), rows });
 const v = createHash('sha256').update(body).digest('hex').slice(0, 8);
-writeFileSync('public/data/cities.json', `{"v":"${v}",${body.slice(1)}`);
+writeFileSync('data/cities.json', `{"v":"${v}",${body.slice(1)}`);
 console.log(`wrote ${rows.length} cities, ${tzNames.length} time zones, ${small.length} small countries, version ${v}`);

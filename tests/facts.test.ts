@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import data from '../public/data/cities.json';
+import data from '../data/cities.json';
 import { buildIndex, type CityData } from '../src/lib/places/index';
 import { connectingFact, ordinal, spokenTime, utcOffsetMinutes } from '../src/lib/reveal/facts';
 import { classify } from '../src/lib/reveal/reveal';
