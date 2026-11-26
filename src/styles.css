@@ -29,7 +29,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .question { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(30px, 8.6vw, 40px); line-height: 1.08; margin: 0; }
 .question.small { font-size: clamp(26px, 7.4vw, 34px); }
 .amp { color: var(--pink); }
-.lede { font-size: 16px; line-height: 1.5; color: #e2dce8; margin: 0; }
+.lede { font-size: 16px; line-height: 1.5; color: #e2dce8; margin: 0; text-wrap: pretty; }
 .hint { font-size: 14px; line-height: 1.5; color: var(--muted); margin: 0; }
 .fine { font-size: 11px; line-height: 1.5; color: #6f6a7e; margin: 4px 0 0; }
 .error { color: #ffc4da; background: #2a1020; border: 1px solid #5a2140; border-radius: 12px; padding: 10px 12px; margin: 0; font-size: 14px; }

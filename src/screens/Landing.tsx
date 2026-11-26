@@ -28,8 +28,7 @@ export function Landing({ land, status, onStart, onScanInvite, onContinue, onPos
         </>}
       </div>
       <p className="lede center">{copy.landingLine}</p>
-      <p className="meta center">{copy.landingMeta}</p>
-      {status === 'none' && <button className="primary" onClick={onStart}>Start</button>}
+      {status === 'none' && <button className="primary" onClick={onStart}>{copy.landingStart}</button>}
       {status === 'playing' && <>
         <button className="primary" onClick={onContinue}>Continue our game</button>
         <button className="secondary" onClick={onStart}>Play again</button>

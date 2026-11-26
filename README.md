@@ -1,6 +1,6 @@
 # Our World
 
-A date for two phones. One partner starts a game and brings the other in by QR code. Each answers 12 questions about places in their lives in three acts (before us, us, next), seals their answers, and the phones swap by scanning each other's code. Then a reveal, one question at a time, and a poster: each partner's world in silver, plus the bigger world they make together in pink. "Mine + yours = ours."
+A game for two: "How big is our world?" One partner starts a game and brings the other in by QR code. Each answers 12 questions about places in their lives in three acts (before us, us, next), seals their answers, and the phones swap by scanning each other's code. Then a reveal, one question at a time, and a poster: each partner's world in silver, plus the bigger world they make together in pink. "Mine + yours = ours."
 
 There is no backend. Answers stay on each phone, and the codes carry them after the `#` in a link, which browsers never send to a server.
 
