@@ -5,8 +5,8 @@ import { Chart } from '../components/Chart';
 import type { Person } from '../state/people';
 
 /** F13: dim, "This is your world", the two silver shapes slide together, then the pink shape draws itself. */
-export function Final({ a, b, land, continentOf, onPoster }: {
-  a: Person; b: Person; land: ArrayLike<number>; continentOf: (cc: string) => string; onPoster: () => void;
+export function Final({ a, b, land, continentOf, toExplore, onPoster }: {
+  a: Person; b: Person; land: ArrayLike<number>; continentOf: (cc: string) => string; toExplore: number; onPoster: () => void;
 }) {
   const model = useMemo(() => buildWorld(a.places, b.places, continentOf), [a, b, continentOf]);
   const [phase, setPhase] = useState<'dim' | 'title' | 'merge' | 'draw' | 'done'>('dim');
@@ -37,12 +37,14 @@ export function Final({ a, b, land, continentOf, onPoster }: {
         <Chart className="final-a" model={model} land={land} mode="a" view={model.view} dreams={false} label={copy.yourWorld(a.name)} />
         <Chart className="final-b" model={model} land={land} mode="b" view={model.view} dreams={false} label={copy.yourWorld(b.name)} />
         {(phase === 'draw' || phase === 'done') && (
-          <Chart className="final-ours" model={model} land={land} mode="ours" view={model.view} progress={progress} dreams={phase === 'done'} label={copy.altText(model.counts.places, model.share)} />
+          <Chart className="final-ours" model={model} land={land} mode="ours" view={model.view} progress={progress} dreams={phase === 'done'} label={copy.altText(model.counts.places, toExplore)} />
         )}
       </div>
       <div className="final-counts center">
-        {model.share ? <><p className="final-share">{model.share}</p><p className="meta">{copy.ofThePlanet}</p></> : <p className="final-share small">{copy.justStarted}</p>}
-        <p className="hint">{copy.supportLine(model.growth, model.counts.countries, model.counts.continents)}</p>
+        {toExplore > 0
+          ? <><p className="final-share">{toExplore}</p><p className="meta">{copy.toExplore}</p></>
+          : <p className="hint">{copy.exploredAll}</p>}
+        <p className="hint">{copy.supportLine(model.counts.places, model.counts.countries, model.aroundWorld === null ? null : copy.aroundWorld(`${Math.round(model.aroundWorld * 100)}%`))}</p>
       </div>
       <button className="primary final-cta" onClick={onPoster} disabled={phase !== 'done'}>See your poster</button>
     </main>

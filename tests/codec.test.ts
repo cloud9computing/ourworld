@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeAnswers, decodeInvite, encodeAnswers, encodeInvite, answersLink, inviteLink, readLink, type Answers, type Invite } from '../src/lib/swap/codec';
+import { decodeAnswers, decodeInvite, encodeAnswers, encodeInvite, answersLink, inviteLink, readLink, sharedLink, type Answers, type Invite } from '../src/lib/swap/codec';
 
 const invite: Invite = { gameId: '0123456789abcdef', tier: 2, from: 'Ravi', to: 'Tara', questions: [1, 3, 4, 11, 12, 13, 14, 15, 16, 31, 32, 34], indexVersion: 'abcc0607' };
 const answers: Answers = {
@@ -16,6 +16,16 @@ describe('invite code', () => {
   });
   it('keeps accented names', () => {
     expect(decodeInvite(encodeInvite({ ...invite, from: 'Zoë', to: 'Ñuno' })).from).toBe('Zoë');
+  });
+});
+
+describe('places-to-explore code', () => {
+  it('round-trips choices and ticks', () => {
+    const shared = { gameId: '0123456789abcdef', been: { '51:0': false, '52:1': true }, went: [1269843, 4000000006] };
+    expect(readLink(sharedLink('https://x', shared))).toEqual({ kind: 'shared', shared });
+  });
+  it('carries every tenure tier, Just met to 15+', () => {
+    for (const tier of [0, 5] as const) expect(decodeInvite(encodeInvite({ ...invite, tier })).tier).toBe(tier);
   });
 });
 

@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { copy } from '../data/copy';
-import { DEFAULT_TIER, TIERS, type Tier } from '../data/bank';
+import { TIERS, type Tier } from '../data/bank';
 
 export function Setup({ onDone, onBack }: { onDone: (me: string, partner: string, tier: Tier) => void; onBack: () => void }) {
   const [me, setMe] = useState('');
   const [partner, setPartner] = useState('');
-  const [tier, setTier] = useState<Tier>(DEFAULT_TIER);
+  // required: "Just met" changes the whole game, so there's no default
+  const [tier, setTier] = useState<Tier | null>(null);
   const [adult, setAdult] = useState(false);
-  const ok = me.trim().length > 0 && partner.trim().length > 0 && adult;
+  const ok = me.trim().length > 0 && partner.trim().length > 0 && adult && tier !== null;
   return (
     <main className="screen">
       <div className="topbar"><button className="link" onClick={onBack}>← Back</button><span /></div>
       <p className="eyebrow">Step 1 of 2</p>
       <h2 className="question">Who’s on this date?</h2>
-      <form onSubmit={e => { e.preventDefault(); if (ok) onDone(me.trim(), partner.trim(), tier); }}>
+      <form onSubmit={e => { e.preventDefault(); if (ok && tier !== null) onDone(me.trim(), partner.trim(), tier); }}>
         <label className="field"><span className="eyebrow">Your name</span>
           <input className="line" value={me} maxLength={20} onChange={e => setMe(e.target.value)} autoComplete="given-name" autoFocus />
         </label>

@@ -189,3 +189,26 @@ form { display: grid; gap: 18px; }
   .loop-a, .loop-b { opacity: 0; }
   .flip-inner, .final-stage .chart { transition: none; }
 }
+
+/* v3: ask-your-partner prompts, discovery moments, places to explore */
+.prompts { display: grid; gap: 4px; margin-top: 4px; }
+.prompt { font-size: 17px; line-height: 1.4; color: #f6e3ec; margin: 0; }
+.row.choice { margin-top: 6px; }
+.card.discover { border-color: #ffb36b; animation: discover 1.8s ease-out 2; }
+@keyframes discover { 0% { box-shadow: 0 0 0 0 rgba(255, 179, 107, .7); } 100% { box-shadow: 0 0 0 36px rgba(255, 179, 107, 0); } }
+.discovery { position: relative; font-family: var(--serif); font-style: italic; font-size: 24px; line-height: 1.25; color: #ffd9b3; margin: 4px 0 0; animation: pop .4s ease-out; }
+/* the glow that travels from the card down into the places to explore */
+.travel { position: absolute; left: 50%; top: -120px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: #ffb36b; box-shadow: 0 0 18px 6px rgba(255, 179, 107, .6); animation: travel 1.4s ease-in forwards; pointer-events: none; }
+@keyframes travel { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(70vh); opacity: 0; } }
+.more { display: grid; gap: 10px; padding-top: 6vh; }
+.more-count { font-family: var(--serif); font-style: italic; font-size: 120px; line-height: 1; color: var(--pink); margin: 0; }
+.explore-preview { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; text-align: center; font-size: 15px; color: #e2dce8; }
+.explore-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.explore-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.explore-list .city { font-family: var(--serif); font-style: italic; font-size: 22px; }
+.explore-list .country { font-size: 13px; color: var(--muted); }
+.explore-list .origin { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.explore-list li.went .city { text-decoration: line-through; opacity: .6; }
+.explore-list .chip { flex-shrink: 0; }
+.sync { display: grid; gap: 10px; margin-top: 8px; }
+@media (prefers-reduced-motion: reduce) { .travel, .card.discover { animation: none; } .travel { display: none; } }

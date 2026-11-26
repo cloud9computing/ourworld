@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const BASE = process.env.BASE_URL || 'http://localhost:4173';
+const TIER = process.env.TIER || '3–7 years'; // e.g. TIER='Just met'
 const OUT = process.argv[2] || 'e2e-out';
 fs.mkdirSync(OUT, { recursive: true });
 const shot = (page, name, full = false) => page.screenshot({ path: path.join(OUT, name), fullPage: full });
@@ -55,7 +56,7 @@ async function answerAll(page, cities, shots) {
   await ravi.getByRole('button', { name: 'Find out together' }).click();
   await ravi.getByLabel('Your name').fill('Ravi');
   await ravi.getByLabel('Your partner').fill('Tara');
-  await ravi.getByRole('button', { name: '3–7 years' }).click();
+  await ravi.getByRole('button', { name: TIER, exact: true }).click();
   await ravi.getByLabel('We’re both 18 or over').check();
   await shot(ravi, '02-names.png');
   await ravi.getByRole('button', { name: 'Next' }).click();
@@ -77,14 +78,15 @@ async function answerAll(page, cities, shots) {
   await answerAll(ravi, RAVI, true);
   await answerAll(tara, TARA, false);
 
-  // list questions: Ravi pastes a list and confirms with one tap; Tara skips
+  // list questions: Ravi pastes a list and confirms with one tap; Tara skips ("Just met" has only one list)
+  const lists = TIER === 'Just met' ? 1 : 2;
   await ravi.getByText('Paste a list instead').click();
   await ravi.getByLabel('Paste a list of places').fill('Prague, Vienna and Bruges');
   await ravi.getByRole('button', { name: 'Find these' }).click();
   await ravi.getByRole('button', { name: 'Add all' }).click();
   await ravi.getByRole('button', { name: 'Done' }).click();
-  await ravi.getByRole('button', { name: 'Skip' }).click();
-  for (let k = 0; k < 2; k++) await tara.getByRole('button', { name: 'Skip' }).click();
+  if (lists === 2) await ravi.getByRole('button', { name: 'Skip' }).click();
+  for (let k = 0; k < lists; k++) await tara.getByRole('button', { name: 'Skip' }).click();
 
   // F8: seal
   for (const p of [ravi, tara]) {
@@ -121,20 +123,29 @@ async function answerAll(page, cities, shots) {
   // F9–F12: the reveal on Ravi's phone
   await ravi.getByRole('button', { name: 'Start the reveal' }).click();
   await ravi.getByRole('button', { name: 'Begin →' }).click();
-  let q = 0;
+  let q = 0, choice = 0;
   for (;;) {
     await ravi.waitForTimeout(300);
     const flips = ravi.locator('button.flip:not(:disabled):not(.shown)');
     while (await flips.count()) { await flips.first().click(); await ravi.waitForTimeout(700); }
+    // Act 1: "Been there together?" alternates between the two answers
+    const notYet = ravi.getByRole('button', { name: 'Not yet' });
+    if (await notYet.isVisible().catch(() => false)) {
+      if (choice++ % 3 === 2) await ravi.getByRole('button', { name: 'We’ve been together' }).click();
+      else { await notYet.click(); if (!fs.existsSync(path.join(OUT, '08-discovery.png'))) { await ravi.waitForTimeout(500); await shot(ravi, '08-discovery.png'); } }
+    }
     await ravi.waitForTimeout(900);
     q++;
-    const lines = (await ravi.locator('.outcome p, .kept li, .verdict').allTextContents()).filter(Boolean);
+    const lines = (await ravi.locator('.outcome p, .kept li, .verdict, .discovery, .more p, .more li').allTextContents()).filter(Boolean);
     console.log(`reveal ${q}:`, [...new Set(lines)].join(' | '));
-    const same = await ravi.locator('.cards.one').count();
+    const same = await ravi.locator('.cards.one .card.glow').count();
     if (same && !fs.existsSync(path.join(OUT, '09-reveal-same.png'))) await shot(ravi, '09-reveal-same.png');
-    else if (q === 5) await shot(ravi, '08-reveal-different.png');
-    const nextQ = ravi.getByRole('button', { name: 'Next question →' });
-    if (await nextQ.isVisible()) { await nextQ.click(); continue; }
+    if (await ravi.locator('.more').count()) { await ravi.waitForTimeout(1200); await shot(ravi, '09b-and-more.png'); }
+    const nextQ = ravi.getByRole('button', { name: 'Next →' });
+    if (await nextQ.isVisible()) {
+      if (await nextQ.isDisabled()) throw new Error(`reveal step ${q} can't move on`);
+      await nextQ.click(); continue;
+    }
     await ravi.getByRole('button', { name: 'See your world →' }).click();
     break;
   }
@@ -155,6 +166,21 @@ async function answerAll(page, cities, shots) {
     await dl.saveAs(path.join(OUT, file));
     console.log(`${file} ready in ${Date.now() - t0} ms`);
   }
+
+  // R4: places to explore, ticking one off
+  await ravi.getByRole('button', { name: /Your places to explore \(\d+\)/ }).click();
+  const before = await ravi.locator('.more-count').textContent();
+  await ravi.locator('.explore-list .chip').first().click();
+  const after = await ravi.locator('.more-count').textContent();
+  console.log(`places to explore: ${before} -> ${after} after ticking one off`);
+  await ravi.getByRole('button', { name: /Show the code/ }).click();
+  await ravi.locator('.qr svg').waitFor();
+  await shot(ravi, '12-explore.png', true);
+  const sharedCode = await ravi.locator('.qr').getAttribute('data-link');
+  // Tara's phone takes the list from Ravi's
+  await tara.goto('about:blank'); await tara.goto(sharedCode);
+  await tara.locator('.explore-list').waitFor();
+  console.log('Tara’s phone after the code:', await tara.locator('.more-count').textContent(), 'to explore');
 
   // F17: the finished game is kept
   await ravi.goto(BASE);

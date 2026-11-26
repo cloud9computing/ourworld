@@ -15,8 +15,10 @@ export type PosterOptions = {
   format: PosterFormat;
   names: [string, string];
   showNames: boolean;
-  /** The one place name on the poster, on the featured star. Off leaves no place names at all. */
+  /** The one place name on the poster, on the featured star, and the place in the "Next" line. Off hides both. */
   showPlace: boolean;
+  /** Places still to explore, and the first of them with where it came from. */
+  explore: { count: number; next?: { name: string; origin: string } };
   land: ArrayLike<number>;
   link: string;
   fontCss?: string;
@@ -69,30 +71,37 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
   s += chartSvg(m, { cx: W / 2, cy: L.big.cy, r: L.big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, id: 'po' });
   if (o.showPlace && m.featured) s += placeLabel(m, L.big, W);
 
-  // 3. hero: whose world, how much of the planet, how much bigger together
+  // 3. hero: whose world, how much is still to explore in each other's worlds
   const title = o.showNames ? `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan> ${esc(copy.yourWorld(nb))}` : esc(copy.ourWorld);
   const titleText = o.showNames ? `${na} & ${copy.yourWorld(nb)}` : copy.ourWorld;
   let titleSize = story ? 62 : 54;
   while (titleSize > 34 && serifWidth(titleText, titleSize) > W - 160) titleSize -= 2;
   s += serif(W / 2, L.hero, title, titleSize);
-  if (m.share) {
-    s += serif(W / 2, L.share, esc(m.share), story ? 200 : 170, LOOK.pink);
-    s += mono(W / 2, L.of, copy.ofThePlanet, story ? 24 : 21, 'fill-opacity=".85"');
+  const around = m.aroundWorld === null ? null : `${Math.round(m.aroundWorld * 100)}%`;
+  const bigSize = story ? 200 : 170;
+  if (o.explore.count > 0) {
+    s += serif(W / 2, L.share, String(o.explore.count), bigSize, LOOK.pink);
+    s += mono(W / 2, L.of, copy.toExplore, story ? 21 : 19, 'fill-opacity=".85"');
+  } else if (around) {
+    // nothing left to explore: the hero is how far around the world they reach
+    s += serif(W / 2, L.share, esc(around), bigSize, LOOK.pink);
+    s += mono(W / 2, L.of, copy.ofTheWayAround, story ? 21 : 19, 'fill-opacity=".85"');
   } else {
     s += serif(W / 2, L.share - (story ? 40 : 34), esc(copy.justStarted), story ? 96 : 80, LOOK.pink);
   }
-  const support = copy.supportLine(m.growth, m.counts.countries, m.counts.continents);
+  // the around-the-world share is in the hero when nothing is left to explore, so it isn't repeated here
+  const support = copy.supportLine(m.counts.places, m.counts.countries, around ? copy.aroundWorld(around) : null, o.explore.count > 0 || !around);
   let supportSize = story ? 26 : 23;
   while (supportSize > 16 && support.length * supportSize * 0.5 > W - 140) supportSize -= 1;
   s += `<text x="${W / 2}" y="${L.support}" text-anchor="middle" font-family="Inter, sans-serif" font-size="${supportSize}" fill="${LOOK.cream}" fill-opacity=".85">${esc(support)}</text>`;
 
-  // 4. the dream that would grow it most
-  if (m.dream) {
-    const line = m.dream.kind === 'next' ? copy.dreamNext(m.dream.name, m.dream.share) : copy.dreamInside(m.dream.name);
-    let size = story ? 38 : 34;
-    while (size > 24 && serifWidth(line, size) > W - 140) size -= 2;
-    s += serif(W / 2, L.dream, esc(line), size);
-  }
+  // 4. the next place to explore, and whose world it comes from
+  const line = o.explore.count === 0 ? copy.exploredAll
+    : !o.showPlace || !o.explore.next ? copy.nextSomewhere
+      : copy.nextLine(o.explore.next.name, o.explore.next.origin);
+  let size = story ? 38 : 34;
+  while (size > 22 && serifWidth(line, size) > W - 140) size -= 2;
+  s += serif(W / 2, L.dream, esc(line), size);
 
   // 5. footer: the challenge and the link
   const host = o.link.replace(/^https?:\/\//, '').replace(/\/$/, '');

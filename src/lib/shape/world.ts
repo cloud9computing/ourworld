@@ -2,7 +2,7 @@
 // on the north-polar map (PRD v2, section 8).
 import { distanceKm, polarProjection, type Projection, type XY } from './geo';
 import { boundingCentre, buildShape, mergeNearby, smoothSegments, type Dot, type Place, type Shape } from './polygon';
-import { dreamLine, featuredPlace, formatShare, growthText, worldArea, type DreamLine } from './area';
+
 
 export const ROTATION = -43;
 
@@ -23,13 +23,8 @@ export type WorldModel = {
   ours: Shape;
   view: View;
   counts: { places: number; countries: number; continents: number; dreams: number; a: number; b: number };
-  /** Fractions of the Earth's surface enclosed by each loop. */
-  area: { ours: number; a: number; b: number };
-  /** "23%", or null with fewer than 3 places together ("Just getting started"). */
-  share: string | null;
-  /** "Twice the size of either world alone", "Bigger together", ... */
-  growth: string;
-  dream: DreamLine | null;
+  /** Share of the way around the world, 0..1, or null with fewer than 3 places ("Just getting started"). */
+  aroundWorld: number | null;
   /** The one shared place whose name goes on the poster, if any. */
   featured?: TaggedDot;
 };
@@ -85,11 +80,6 @@ export function buildWorld(a: PersonPlaces, b?: PersonPlaces, options: WorldOpti
   const shapeB = b ? buildShape(mine('b'), project, smoothSegments) : { kind: 'empty' as const };
   const ours = buildShape(dots, project, smoothSegments);
 
-  const area = { ours: worldArea(dots, project), a: worldArea(mine('a'), project), b: b ? worldArea(mine('b'), project) : 0 };
-  const biggerAlone = Math.max(area.a, area.b);
-  const ratio = b && mine('a').length >= 3 && mine('b').length >= 3 && biggerAlone > 0 ? area.ours / biggerAlone : null;
-  const rawDreams = [...da, ...db].filter((d, i, all) => all.findIndex(x => x.id === d.id) === i);
-
   const pts = dots.map(project);
   if (ours.kind === 'loop' || ours.kind === 'line') pts.push(...ours.path);
   return {
@@ -102,10 +92,36 @@ export function buildWorld(a: PersonPlaces, b?: PersonPlaces, options: WorldOpti
       a: mine('a').length,
       b: mine('b').length,
     },
-    area,
-    share: dots.length < 3 ? null : formatShare(area.ours),
-    growth: growthText(ratio),
-    dream: dreamLine(dots, rawDreams, project),
+    aroundWorld: dots.length < 3 ? null : aroundTheWorld(dots.map(d => d.lon)),
     featured: opts.mentions ? featuredPlace(dots, opts.mentions) : undefined,
   };
+}
+
+/**
+ * How far around the world the places reach: (360° − the largest east–west gap between them) ÷ 360.
+ * Places strung right round the globe come close to 1; places in one region stay small.
+ */
+export function aroundTheWorld(longitudes: number[]): number {
+  if (longitudes.length < 2) return 0;
+  const lons = longitudes.map(l => ((l % 360) + 360) % 360).sort((x, y) => x - y);
+  let gap = 360 - lons[lons.length - 1] + lons[0];
+  for (let i = 1; i < lons.length; i++) gap = Math.max(gap, lons[i] - lons[i - 1]);
+  return (360 - gap) / 360;
+}
+
+/**
+ * The one star that gets its name on the poster: among places both partners named, the one named in the
+ * most answers; ties go to the one whose first mention comes earliest. `mentions` lists every answer's
+ * place in order (question by question, first partner then second, then the lists).
+ */
+export function featuredPlace<T extends Place & { members: Place[]; who: string }>(dots: T[], mentions: Place[]): T | undefined {
+  let best: { d: T; count: number; first: number } | undefined;
+  for (const d of dots) {
+    if (d.who !== 'both') continue;
+    const ids = new Set(d.members.map(m => m.id));
+    let count = 0, first = Infinity;
+    mentions.forEach((p, i) => { if (ids.has(p.id)) { count++; first = Math.min(first, i); } });
+    if (!best || count > best.count || (count === best.count && first < best.first)) best = { d, count, first };
+  }
+  return best?.d;
 }

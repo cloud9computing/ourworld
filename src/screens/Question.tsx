@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { copy } from '../data/copy';
-import { ACTS, questionText, type BankQuestion } from '../data/bank';
+import { actName, questionText, type BankQuestion } from '../data/bank';
 import type { City, CityIndex } from '../lib/places/index';
 import type { WorldModel } from '../lib/shape/world';
 import type { Answer } from '../lib/swap/codec';
@@ -26,7 +26,7 @@ export function Question({ q, partner, index, current, chips, uses, placesSoFar,
   return (
     <main className="screen question-screen">
       <div className="topbar">
-        <span className="act">{onBack && <button className="link inline" onClick={onBack} aria-label="Previous question">←</button>} Act {q.act} · {ACTS[q.act].name}</span>
+        <span className="act">{onBack && <button className="link inline" onClick={onBack} aria-label="Previous question">←</button>} Act {q.act} · {actName(q)}</span>
         <span className="act-dots" aria-hidden>{[1, 2, 3].map(a => <i key={a} className={a <= q.act ? 'on' : ''} />)}</span>
       </div>
       <div className="mini">

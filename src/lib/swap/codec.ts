@@ -2,13 +2,15 @@
 //
 // Invite (#j=):  u8 format | u8 'J' | 8 bytes game id | u8 tier | name, partner name (u8 length + UTF-8)
 //                | u8 count + u8 question ids | 4 bytes city index version | CRC-32
+// Shared (#r=):  u8 format | u8 'R' | 8 bytes game id | u8 count + (u8 question id, u8 role << 1 | together) choices
+//                | varint count + varint ids of places ticked off as "We went" | CRC-32
 // Answers (#a=): u8 format | u8 'A' | 8 bytes game id | u8 role (0 started the game, 1 joined)
 //                | u8 count | 2-bit statuses (0 none, 1 answered, 2 skipped) | varint city ids for answered
 //                | two lists (varint count + varint ids): places together, cities lived in | CRC-32
 import { LIST_MAX } from '../../data/bank';
 import type { Tier } from '../../data/bank';
 
-export const FORMAT = 2;
+export const FORMAT = 3;
 const MAX_NAME_BYTES = 40;
 
 export type Status = 'answered' | 'skipped';
@@ -16,6 +18,9 @@ export type Answer = { status: Status; place?: number };
 
 export type Invite = { gameId: string; tier: Tier; from: string; to: string; questions: number[]; indexVersion: string };
 export type Answers = { gameId: string; role: 0 | 1; answers: Answer[]; together: number[]; lived: number[] };
+
+/** What the reveal decided, so the other phone can keep the same places-to-explore list (R4). */
+export type Shared = { gameId: string; been: Record<string, boolean>; went: number[] };
 
 export class CodeError extends Error {}
 
@@ -72,7 +77,7 @@ class Reader {
   end() { if (this.i !== this.b.length) throw new CodeError('trailing data'); }
 }
 
-function open(bytes: Uint8Array, kind: 'J' | 'A'): Reader {
+function open(bytes: Uint8Array, kind: 'J' | 'A' | 'R'): Reader {
   if (bytes.length < 12 || bytes.length > 2000) throw new CodeError('This code isn’t one of ours.');
   const body = bytes.slice(0, bytes.length - 4);
   const crc = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(bytes.length - 4);
@@ -80,7 +85,7 @@ function open(bytes: Uint8Array, kind: 'J' | 'A'): Reader {
   const r = new Reader(body);
   if (r.u8() !== FORMAT) throw new CodeError('This code comes from an older version. Refresh both phones and start again.');
   const k = String.fromCharCode(r.u8());
-  if (k !== kind) throw new CodeError(kind === 'A' ? 'That’s an invite code. Scan the code on the sealed screen instead.' : 'That’s an answer code, not an invite.');
+  if (k !== kind) throw new CodeError(kind === 'A' ? 'That’s an invite code. Scan the code on the sealed screen instead.' : kind === 'R' ? 'That’s not a places-to-explore code.' : 'That’s an answer code, not an invite.');
   return r;
 }
 
@@ -95,7 +100,7 @@ export function encodeInvite(v: Invite): Uint8Array {
 export function decodeInvite(bytes: Uint8Array): Invite {
   const r = open(bytes, 'J');
   const gameId = r.hex(8), tier = r.u8();
-  if (tier > 4) throw new CodeError('bad tier');
+  if (tier > 5) throw new CodeError('bad tier');
   const from = r.name(), to = r.name();
   const n = r.u8();
   if (n < 1 || n > 20) throw new CodeError('bad questions');
@@ -138,6 +143,31 @@ export function decodeAnswers(bytes: Uint8Array): Answers {
   return { gameId, role: role as 0 | 1, answers, together, lived };
 }
 
+export function encodeShared(v: Shared): Uint8Array {
+  const w = new Writer();
+  w.u8(FORMAT); w.u8('R'.charCodeAt(0)); w.hex(v.gameId, 8);
+  const entries = Object.entries(v.been).slice(0, 40);
+  w.u8(entries.length);
+  for (const [key, together] of entries) {
+    const [q, role] = key.split(':').map(Number);
+    w.u8(q); w.u8(((role & 1) << 1) | (together ? 1 : 0));
+  }
+  const went = v.went.slice(0, 60);
+  w.varint(went.length); went.forEach(x => w.varint(x));
+  return w.done();
+}
+
+export function decodeShared(bytes: Uint8Array): Shared {
+  const r = open(bytes, 'R');
+  const gameId = r.hex(8), n = r.u8();
+  if (n > 40) throw new CodeError('bad code');
+  const been: Record<string, boolean> = {};
+  for (let i = 0; i < n; i++) { const q = r.u8(), f = r.u8(); been[`${q}:${(f >> 1) & 1}`] = (f & 1) === 1; }
+  const went = r.list(60);
+  r.end();
+  return { gameId, been, went };
+}
+
 export function toBase64Url(b: Uint8Array): string {
   let s = '';
   for (const x of b) s += String.fromCharCode(x);
@@ -152,11 +182,15 @@ export function fromBase64Url(s: string): Uint8Array {
 
 export const inviteLink = (origin: string, v: Invite) => `${origin}/#j=${toBase64Url(encodeInvite(v))}`;
 export const answersLink = (origin: string, v: Answers) => `${origin}/#a=${toBase64Url(encodeAnswers(v))}`;
+export const sharedLink = (origin: string, v: Shared) => `${origin}/#r=${toBase64Url(encodeShared(v))}`;
 
 /** Reads a scanned or pasted link. */
-export function readLink(text: string): { kind: 'invite'; invite: Invite } | { kind: 'answers'; answers: Answers } {
-  const m = text.trim().match(/#([ja])=([A-Za-z0-9_-]+)\s*$/);
+export function readLink(text: string):
+  { kind: 'invite'; invite: Invite } | { kind: 'answers'; answers: Answers } | { kind: 'shared'; shared: Shared } {
+  const m = text.trim().match(/#([jar])=([A-Za-z0-9_-]+)\s*$/);
   if (!m) throw new CodeError('This code isn’t one of ours.');
   const bytes = fromBase64Url(m[2]);
-  return m[1] === 'j' ? { kind: 'invite', invite: decodeInvite(bytes) } : { kind: 'answers', answers: decodeAnswers(bytes) };
+  if (m[1] === 'j') return { kind: 'invite', invite: decodeInvite(bytes) };
+  if (m[1] === 'r') return { kind: 'shared', shared: decodeShared(bytes) };
+  return { kind: 'answers', answers: decodeAnswers(bytes) };
 }
