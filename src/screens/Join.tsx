@@ -10,7 +10,7 @@ export function Join({ from, suggested, onJoin }: { from: string; suggested: str
       <ol className="rules">
         <li><span>1</span><div><strong>12 questions</strong><p>About places in your lives. Takes 5 minutes.</p></div></li>
         <li><span>2</span><div><strong>On your own</strong><p>Answer privately. No peeking, no hints.</p></div></li>
-        <li><span>3</span><div><strong>Then swap</strong><p>Scan each other’s codes to see the world you make together.</p></div></li>
+        <li><span>3</span><div><strong>Then swap</strong><p>{copy.joinRule3}</p></div></li>
       </ol>
       <form onSubmit={e => { e.preventDefault(); if (name.trim()) onJoin(name.trim()); }}>
         <label className="field"><span className="eyebrow">Your name</span>

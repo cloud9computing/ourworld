@@ -43,8 +43,8 @@ export function Final({ a, b, land, continentOf, toExplore, onPoster }: {
       <div className="final-counts center">
         {toExplore > 0
           ? <><p className="final-share">{toExplore}</p><p className="meta">{copy.toExplore}</p></>
-          : <p className="hint">{copy.exploredAll}</p>}
-        <p className="hint">{copy.supportLine(model.counts.places, model.counts.countries, model.aroundWorld === null ? null : copy.aroundWorld(`${Math.round(model.aroundWorld * 100)}%`))}</p>
+          : <><p className="final-share">{model.counts.places}</p><p className="meta">{copy.exploredTogether}</p></>}
+        <p className="hint">{copy.placesTogether(model.counts.places, model.counts.countries)}</p>
       </div>
       <button className="primary final-cta" onClick={onPoster} disabled={phase !== 'done'}>See your poster</button>
     </main>

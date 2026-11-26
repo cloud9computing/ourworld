@@ -23,8 +23,6 @@ export type WorldModel = {
   ours: Shape;
   view: View;
   counts: { places: number; countries: number; continents: number; dreams: number; a: number; b: number };
-  /** Share of the way around the world, 0..1, or null with fewer than 3 places ("Just getting started"). */
-  aroundWorld: number | null;
   /** The one shared place whose name goes on the poster, if any. */
   featured?: TaggedDot;
 };
@@ -92,21 +90,8 @@ export function buildWorld(a: PersonPlaces, b?: PersonPlaces, options: WorldOpti
       a: mine('a').length,
       b: mine('b').length,
     },
-    aroundWorld: dots.length < 3 ? null : aroundTheWorld(dots.map(d => d.lon)),
     featured: opts.mentions ? featuredPlace(dots, opts.mentions) : undefined,
   };
-}
-
-/**
- * How far around the world the places reach: (360° − the largest east–west gap between them) ÷ 360.
- * Places strung right round the globe come close to 1; places in one region stay small.
- */
-export function aroundTheWorld(longitudes: number[]): number {
-  if (longitudes.length < 2) return 0;
-  const lons = longitudes.map(l => ((l % 360) + 360) % 360).sort((x, y) => x - y);
-  let gap = 360 - lons[lons.length - 1] + lons[0];
-  for (let i = 1; i < lons.length; i++) gap = Math.max(gap, lons[i] - lons[i - 1]);
-  return (360 - gap) / 360;
 }
 
 /**
@@ -124,4 +109,11 @@ export function featuredPlace<T extends Place & { members: Place[]; who: string 
     if (!best || count > best.count || (count === best.count && first < best.first)) best = { d, count, first };
   }
   return best?.d;
+}
+
+/** The shape the couple would have with every place to explore added (same joining rule as the main shape). */
+export function ghostShape(m: WorldModel, places: Place[]): Shape {
+  const extra = places.filter(p => !m.dots.some(d => distanceKm(d, p) <= 50));
+  if (!extra.length) return { kind: 'empty' };
+  return buildShape(mergeNearby([...m.dots, ...extra]), m.project, smoothSegments);
 }

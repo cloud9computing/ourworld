@@ -7,12 +7,16 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export const copy = {
   brand: 'Our World',
   landingEyebrow: 'A game for two · 10 minutes',
-  landingTitle: 'How big is our world?',
-  landingLine: 'Twelve questions about the places that made you. Answer in secret on your own phones, then swap and watch your worlds become one.',
+  landingTitle: 'How much of their world have you seen?',
+  landingLine: 'Twelve questions about the places that made you, and the ones you dream of. Answer in secret on your own phones, then swap and discover what’s waiting in each other’s worlds.',
+  landingSmall: 'No sign-up · Nothing leaves your phones',
+  shareLine: 'A 10-minute game for two. No sign-up.',
+  joinRule3: 'Swap codes and discover what’s waiting in each other’s worlds.',
   landingStart: 'Find out together',
   haveInvite: 'Got a code from your partner? Scan it.',
   /** Link preview title (index.html carries the same text, since link previews don't run scripts). */
-  previewTitle: 'How big is our world? A 10-minute game for two.',
+  previewTitle: 'How much of their world have you seen?',
+  previewDescription: 'A 10-minute game for two. Answer on your own phones, swap codes, and discover what’s waiting in each other’s worlds.',
   setupHelper: 'We use this to pick questions that are more likely to surprise you.',
   inviteLine: (p: string) => `Have ${p} scan this with a phone camera. You’ll both get the same 12 questions.`,
   partnerIn: (p: string) => `${p}’s in. Start`,
@@ -67,18 +71,14 @@ export const copy = {
   yours: 'Yours',
   toExplore: 'places still to explore in each other’s worlds',
   exploredAll: 'You’ve explored each other’s worlds. Time for new ones.',
-  aroundWorld: (pct: string) => `${pct} of the way around the world`,
-  ofTheWayAround: 'of the way around the world',
-  justStarted: 'Just getting started',
-  supportLine: (places: number, countries: number, around: string | null, withAround = true) =>
-    [plural(places, 'place'), plural(countries, 'country', 'countries'), ...(withAround ? [around ?? 'Just getting started'] : [])].join(' · '),
   nextLine: (place: string, origin: string) => `Next: ${place}, ${origin}`,
   nextSomewhere: 'Next: somewhere new',
   yourPlacesToExplore: 'Your places to explore',
   weWent: 'We went',
-  /** The link preview image's punchline; the "=" is drawn in pink. Not on the poster. */
-  posterPunchline: ['Mine + yours', '=', 'ours'] as const,
-  posterCta: 'How big is yours?',
+  posterCta: 'What’s waiting in yours?',
+  placesTogether: (places: number, countries: number) =>
+    `${places} ${places === 1 ? 'place' : 'places'} together · ${countries} ${countries === 1 ? 'country' : 'countries'}`,
+  exploredTogether: 'Every place, explored together',
   altText: (places: number, toExplore: number) =>
     `A glowing pink shape joining ${places} places on a faded world map, with each partner's own world in silver, and ${toExplore} places still to explore`,
 };

@@ -1,7 +1,8 @@
 // The poster (PRD v2, F14 and F15): "mine + yours = ours".
 // Story: two small silver charts, a "+", a pink "=", and the large pink chart, all at the same scale and centre.
 // Feed: the combined chart only.
-import { chartSvg, LOOK } from './chart';
+import { chartSvg, LOOK, type ExplorePoint } from './chart';
+import { ghostShape } from './world';
 import type { WorldModel } from './world';
 import { copy } from '../../data/copy';
 
@@ -17,8 +18,17 @@ export type PosterOptions = {
   showNames: boolean;
   /** The one place name on the poster, on the featured star, and the place in the "Next" line. Off hides both. */
   showPlace: boolean;
-  /** Places still to explore, and the first of them with where it came from. */
-  explore: { count: number; next?: { name: string; origin: string } };
+  /**
+   * Places still to explore (not ticked off): the hero number, the rings on the large chart (one per place),
+   * the places each partner's small chart rings, and the next one with where it came from.
+   */
+  explore: {
+    count: number;
+    next?: { id?: number; name: string; origin: string };
+    places?: ExplorePoint[];
+    ringIdsA?: number[];
+    ringIdsB?: number[];
+  };
   land: ArrayLike<number>;
   link: string;
   fontCss?: string;
@@ -53,11 +63,15 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
     s += `<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rr.toFixed(1)}" fill="#fff" fill-opacity="${op.toFixed(2)}"/>`;
   }
 
-  // 1. mine + yours: two small silver charts, at the same scale and centre as the large one
+  const exploring = o.explore.count > 0;
+  const places = exploring ? o.explore.places ?? [] : [];
+
+  // 1. mine + yours: two small silver charts, at the same scale and centre as the large one.
+  // Each rings its own places the other hasn't been to yet; dreams aren't shown here.
   if (story) {
     const small = { r: 172, cy: 250, ax: 285, bx: 795 };
-    s += chartSvg(m, { cx: small.ax, cy: small.cy, r: small.r, land: o.land, mode: 'a', view: m.view, id: 'pa' });
-    s += chartSvg(m, { cx: small.bx, cy: small.cy, r: small.r, land: o.land, mode: 'b', view: m.view, id: 'pb' });
+    s += chartSvg(m, { cx: small.ax, cy: small.cy, r: small.r, land: o.land, mode: 'a', view: m.view, dreams: false, ringIds: exploring ? o.explore.ringIdsA : [], id: 'pa' });
+    s += chartSvg(m, { cx: small.bx, cy: small.cy, r: small.r, land: o.land, mode: 'b', view: m.view, dreams: false, ringIds: exploring ? o.explore.ringIdsB : [], id: 'pb' });
     s += `<text x="${W / 2}" y="${small.cy + 22}" text-anchor="middle" font-family="Inter, sans-serif" font-size="64" font-weight="300" fill="${LOOK.cream}">+</text>`;
     const la = o.showNames ? copy.yourWorld(na) : copy.mine, lb = o.showNames ? copy.yourWorld(nb) : copy.yours;
     for (const [x, label] of [[small.ax, la], [small.bx, lb]] as [number, string][]) {
@@ -67,41 +81,35 @@ export function posterSvg(m: WorldModel, o: PosterOptions): string {
     }
   }
 
-  // 2. the large pink chart, with one shared place named
-  s += chartSvg(m, { cx: W / 2, cy: L.big.cy, r: L.big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, id: 'po' });
+  // 2. the large pink chart: one named shared star, a hollow ring for every place still to explore,
+  // and a ghost outline of the world with all of them added
+  const label = o.showPlace && o.explore.next?.id !== undefined ? { id: o.explore.next.id, text: o.explore.next.name } : undefined;
+  s += chartSvg(m, {
+    cx: W / 2, cy: L.big.cy, r: L.big.r, land: o.land, mode: 'ours', view: m.view, ticks: true, dreams: false, id: 'po',
+    explore: places.length ? { places, ghost: ghostShape(m, places.map(p => ({ ...p, name: '', cc: '', admin: '' }))), label } : undefined,
+  });
   if (o.showPlace && m.featured) s += placeLabel(m, L.big, W);
 
-  // 3. hero: whose world, how much is still to explore in each other's worlds
-  const title = o.showNames ? `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan> ${esc(copy.yourWorld(nb))}` : esc(copy.ourWorld);
-  const titleText = o.showNames ? `${na} & ${copy.yourWorld(nb)}` : copy.ourWorld;
-  let titleSize = story ? 62 : 54;
+  // 3. hero: the two names, then how much is still waiting in each other's worlds
+  const title = o.showNames ? `${esc(na)} <tspan fill="${LOOK.pink}">&amp;</tspan> ${esc(nb)}` : esc(copy.ourWorld);
+  const titleText = o.showNames ? `${na} & ${nb}` : copy.ourWorld;
+  let titleSize = story ? 66 : 58;
   while (titleSize > 34 && serifWidth(titleText, titleSize) > W - 160) titleSize -= 2;
   s += serif(W / 2, L.hero, title, titleSize);
-  const around = m.aroundWorld === null ? null : `${Math.round(m.aroundWorld * 100)}%`;
   const bigSize = story ? 200 : 170;
-  if (o.explore.count > 0) {
-    s += serif(W / 2, L.share, String(o.explore.count), bigSize, LOOK.pink);
-    s += mono(W / 2, L.of, copy.toExplore, story ? 21 : 19, 'fill-opacity=".85"');
-  } else if (around) {
-    // nothing left to explore: the hero is how far around the world they reach
-    s += serif(W / 2, L.share, esc(around), bigSize, LOOK.pink);
-    s += mono(W / 2, L.of, copy.ofTheWayAround, story ? 21 : 19, 'fill-opacity=".85"');
-  } else {
-    s += serif(W / 2, L.share - (story ? 40 : 34), esc(copy.justStarted), story ? 96 : 80, LOOK.pink);
-  }
-  // the around-the-world share is in the hero when nothing is left to explore, so it isn't repeated here
-  const support = copy.supportLine(m.counts.places, m.counts.countries, around ? copy.aroundWorld(around) : null, o.explore.count > 0 || !around);
-  let supportSize = story ? 26 : 23;
-  while (supportSize > 16 && support.length * supportSize * 0.5 > W - 140) supportSize -= 1;
-  s += `<text x="${W / 2}" y="${L.support}" text-anchor="middle" font-family="Inter, sans-serif" font-size="${supportSize}" fill="${LOOK.cream}" fill-opacity=".85">${esc(support)}</text>`;
+  // nothing left to explore: the number is the places they've been together
+  s += serif(W / 2, L.share, String(exploring ? o.explore.count : m.counts.places), bigSize, LOOK.pink);
+  s += mono(W / 2, L.of, exploring ? copy.toExplore : copy.exploredTogether, story ? 21 : 19, 'fill-opacity=".85"');
+  const stats = copy.placesTogether(m.counts.places, m.counts.countries);
+  s += `<text x="${W / 2}" y="${L.support}" text-anchor="middle" font-family="Inter, sans-serif" font-size="${story ? 26 : 23}" fill="${LOOK.cream}" fill-opacity=".85">${esc(stats)}</text>`;
 
-  // 4. the next place to explore, and whose world it comes from
-  const line = o.explore.count === 0 ? copy.exploredAll
-    : !o.showPlace || !o.explore.next ? copy.nextSomewhere
-      : copy.nextLine(o.explore.next.name, o.explore.next.origin);
-  let size = story ? 38 : 34;
-  while (size > 22 && serifWidth(line, size) > W - 140) size -= 2;
-  s += serif(W / 2, L.dream, esc(line), size);
+  // 4. the next place to explore, and whose world it comes from (left out when there's nothing left)
+  if (exploring) {
+    const line = !o.showPlace || !o.explore.next ? copy.nextSomewhere : copy.nextLine(o.explore.next.name, o.explore.next.origin);
+    let size = story ? 38 : 34;
+    while (size > 22 && serifWidth(line, size) > W - 140) size -= 2;
+    s += serif(W / 2, L.dream, esc(line), size);
+  }
 
   // 5. footer: the challenge and the link
   const host = o.link.replace(/^https?:\/\//, '').replace(/\/$/, '');

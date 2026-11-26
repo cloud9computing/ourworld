@@ -1,6 +1,7 @@
 // Draws one circular chart as an SVG fragment. Silver for one person's world, pink for "our world"
 // (PRD v2 rule 6). Used by the quiz map, the sealed screen, the reveal and the poster.
 import type { XY } from './geo';
+import { distanceKm } from './geo';
 import { greatCircle, type Shape } from './polygon';
 import type { View, WorldModel } from './world';
 
@@ -28,7 +29,19 @@ export type ChartOptions = {
   pulse?: number;
   /** Unique prefix for ids inside the SVG. */
   id: string;
+  /**
+   * Places still to explore (speclet v4, 2.1), on the pink chart: one hollow ring each, joined by a faint
+   * dotted line to the nearest place in the shape, plus a ghost outline of the shape with all of them added.
+   */
+  explore?: { places: ExplorePoint[]; ghost?: Shape; label?: { id: number; text: string } };
+  /** On a small chart: ids of this person's places that the other hasn't been to, ringed in pink. */
+  ringIds?: number[];
 };
+
+export type ExplorePoint = { id: number; lat: number; lon: number };
+
+/** Above this many places to explore, rings get thinner lines and a fainter pulse so the chart stays readable. */
+export const MANY_TO_EXPLORE = 20;
 
 const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
 
@@ -77,6 +90,12 @@ export function chartSvg(m: WorldModel, o: ChartOptions): string {
     s += `</g>`;
   }
 
+  // the ghost outline: the shape with every place to explore added, dashed, under the solid shape
+  if (together && o.explore?.ghost) {
+    const g = pathD(o.explore.ghost, px, 1);
+    if (g) s += `<path class="ghost" d="${g}" fill="none" stroke="${LOOK.pink}" stroke-opacity=".4" stroke-width="${f1(w * 0.9)}" stroke-dasharray="${f1(w * 2.2)} ${f1(w * 1.6)}" stroke-linejoin="round"/>`;
+  }
+
   // the shape
   if (d) {
     const full = (o.progress ?? 1) >= 1;
@@ -111,6 +130,41 @@ export function chartSvg(m: WorldModel, o: ChartOptions): string {
     }
     if (o.pulse !== undefined && dot.members.some(mm => mm.id === o.pulse)) {
       s += `<circle class="pulse" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${f1(w * 3)}" fill="none" stroke="#fff" stroke-width="${f1(w * 0.6)}"/>`;
+    }
+  }
+  // small charts: ring this person's places the other hasn't been to yet
+  if (o.ringIds?.length) {
+    const ids = new Set(o.ringIds);
+    for (const dot of dots) {
+      if (!dot.members.some(mm => ids.has(mm.id))) continue;
+      const q = at(dot);
+      s += `<circle class="explore-dot-ring" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${f1(w * 4)}" fill="none" stroke="${LOOK.pink}" stroke-width="${f1(w * 0.8)}"/>`;
+    }
+  }
+
+  // the pink chart: a hollow ring for every place still to explore
+  if (together && o.explore?.places.length) {
+    const many = o.explore.places.length > MANY_TO_EXPLORE;
+    const ringR = w * (many ? 3.4 : 4.4), lineW = w * (many ? 0.45 : 0.7);
+    for (const p of o.explore.places) {
+      let q = at(p);
+      // a place beyond the frame (far south) sits on the frame edge, in its direction
+      const dx = q.x - cx, dy = q.y - cy, dist = Math.hypot(dx, dy), max = r - ringR - w;
+      if (dist > max) q = { x: cx + (dx / dist) * max, y: cy + (dy / dist) * max };
+      const nearest = m.dots.reduce<{ d?: (typeof m.dots)[number]; km: number }>((b, d) => {
+        const km = distanceKm(d, p);
+        return km < b.km ? { d, km } : b;
+      }, { km: Infinity });
+      if (nearest.d && nearest.km > 50) {
+        const from = at(nearest.d);
+        s += `<line x1="${f1(from.x)}" y1="${f1(from.y)}" x2="${f1(q.x)}" y2="${f1(q.y)}" stroke="${LOOK.pink}" stroke-opacity="${many ? '.35' : '.5'}" stroke-width="${f1(lineW)}" stroke-dasharray="${f1(w * 0.2)} ${f1(w * 1.8)}" stroke-linecap="round"/>`;
+      }
+      s += `<circle class="explore-ring${many ? ' many' : ''}" cx="${f1(q.x)}" cy="${f1(q.y)}" r="${f1(ringR)}" fill="none" stroke="${LOOK.pink}" stroke-width="${f1(lineW * 1.6)}"/>`;
+      if (o.explore.label && o.explore.label.id === p.id) {
+        const size = Math.max(11, r / 22), right = q.x < cx + r * 0.55;
+        const lx = right ? q.x + ringR + w * 3 : q.x - ringR - w * 3;
+        s += `<text x="${f1(lx)}" y="${f1(q.y + size * 0.35)}" text-anchor="${right ? 'start' : 'end'}" font-family="Space Mono, monospace" font-size="${f1(size)}" letter-spacing="${f1(size * 0.12)}" fill="${LOOK.pink}">${o.explore.label.text.toUpperCase().replace(/[&<>]/g, '')}</text>`;
+      }
     }
   }
   s += `</g>`;

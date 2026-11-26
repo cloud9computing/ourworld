@@ -212,3 +212,10 @@ form { display: grid; gap: 18px; }
 .explore-list .chip { flex-shrink: 0; }
 .sync { display: grid; gap: 10px; margin-top: 8px; }
 @media (prefers-reduced-motion: reduce) { .travel, .card.discover { animation: none; } .travel { display: none; } }
+
+/* v4: places still to explore pulse gently on screen (exported images are static: no CSS there) */
+.explore-ring { transform-box: fill-box; transform-origin: center; animation: ringPulse 2.6s ease-in-out infinite; }
+.explore-ring.many { animation: ringPulseFaint 3.4s ease-in-out infinite; }
+@keyframes ringPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .55; } }
+@keyframes ringPulseFaint { 0%, 100% { opacity: .85; } 50% { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .explore-ring, .explore-ring.many { animation: none; } }
