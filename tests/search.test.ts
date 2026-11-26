@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import data from '../public/data/cities.json';
+import data from '../data/cities.json';
 import { buildIndex } from '../src/lib/places/index';
 
 const index = buildIndex(data as never);

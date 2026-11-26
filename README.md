@@ -35,8 +35,8 @@ The repository is connected to Cloudflare Workers & Pages (project `ourworld`), 
 
 ## Data
 
-- `public/data/cities.json`: about 24,000 cities (over 15,000 people, plus capitals and a few famous small places) from GeoNames, CC BY 4.0, via the `all-the-cities` package. Rebuild with `npm run build:cities`.
-- `public/data/land.json`: land dots on the whole globe from Natural Earth 50m (public domain), via `world-atlas`. Rebuild with `npm run build:land` (about 2 minutes).
+- `data/cities.json`: about 24,000 cities (over 15,000 people, plus capitals and a few famous small places) from GeoNames, CC BY 4.0, via the `all-the-cities` package. Rebuild with `npm run build:cities`.
+- `data/land.json`: land dots on the whole globe from Natural Earth 50m (public domain), via `world-atlas`. Rebuild with `npm run build:land` (about 2 minutes).
 - `tests/fixtures/reference.json`: output of `assets/shape_reference.py`, regenerated with `python3 scripts/export-reference-fixture.py`.
 
 ## Where things live

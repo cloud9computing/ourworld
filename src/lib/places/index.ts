@@ -1,6 +1,9 @@
 // The bundled city index (GeoNames, cities over 15,000 people plus capitals), searched on the phone.
 import type { Place } from '../shape/polygon';
 import { distanceKm } from '../shape/geo';
+// Imported as a URL so the build gives the file a content-hashed name: a new version of the
+// data always has a new address, and a browser can never pair new code with an old cached copy.
+import citiesUrl from '../../../data/cities.json?url';
 
 type Row = [number, string, string, string, string, number, number, number, 0 | 1, number];
 export type CityData = { v: string; tz: string[]; cont: Record<string, string>; small: string[]; rows: Row[] };
@@ -45,10 +48,10 @@ const ALIASES: Record<string, [string, string]> = {
 
 export function buildIndex(data: CityData): CityIndex {
   const { v: version, rows } = data;
-  const small = new Set(data.small);
+  const small = new Set(data.small ?? []);
   const cities: City[] = rows.map(r => ({
     id: r[0], name: r[1], cc: r[3], admin: r[4], lat: r[5], lon: r[6], pop: r[7], capital: r[8] === 1, country: countryName(r[3]),
-    tz: data.tz[r[9]] ?? 'UTC', cont: data.cont[r[3]] ?? '',
+    tz: data.tz?.[r[9]] ?? 'UTC', cont: data.cont?.[r[3]] ?? '',
   }));
   const byId = new Map(cities.map(c => [c.id, c]));
   const names = cities.map(c => norm(c.name));
@@ -101,7 +104,7 @@ export function buildIndex(data: CityData): CityIndex {
     return best;
   }
 
-  return { version, byId, search, parseList, isSmall: cc => small.has(cc), nearest, continentOf: cc => data.cont[cc] ?? '' };
+  return { version, byId, search, parseList, isSmall: cc => small.has(cc), nearest, continentOf: cc => data.cont?.[cc] ?? '' };
 }
 
 /** True when a and b (same length) differ by at most one substitution. */
@@ -114,7 +117,7 @@ function within1(a: string, b: string): boolean {
 
 let loading: Promise<CityIndex> | null = null;
 export function loadIndex(): Promise<CityIndex> {
-  loading ??= fetch('/data/cities.json')
+  loading ??= fetch(citiesUrl)
     .then(r => { if (!r.ok) throw new Error('Could not load the city list'); return r.json(); })
     .then((j: CityData) => buildIndex(j));
   return loading;
