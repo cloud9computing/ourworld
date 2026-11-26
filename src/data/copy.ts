@@ -51,12 +51,17 @@ export const copy = {
 
   yourWorld: (name: string) => `${name}’s world`,
   ourWorld: 'Our world',
-  placesCount: (n: number) => plural(n, 'place'),
-  posterTop: 'Seen from the North Pole',
-  posterCounts: (c: { places: number; countries: number; continents: number; dreams: number }) =>
-    [plural(c.places, 'place'), plural(c.countries, 'country', 'countries'), plural(c.continents, 'continent'), ...(c.dreams ? [plural(c.dreams, 'dream')] : [])].join(' · '),
-  /** The punchline under the combined chart; the "=" is drawn in pink. */
+  mine: 'Mine',
+  yours: 'Yours',
+  ofThePlanet: 'of the planet',
+  justStarted: 'Just getting started',
+  supportLine: (growth: string, countries: number, continents: number) =>
+    [growth, plural(countries, 'country', 'countries'), ...(continents ? [plural(continents, 'continent')] : [])].join(' · '),
+  dreamNext: (place: string, share: string) => `Next: ${place} would make it ${share}`,
+  dreamInside: (place: string) => `${place} is already inside your world`,
+  /** The link preview image's punchline; the "=" is drawn in pink. Not on the poster. */
   posterPunchline: ['Mine + yours', '=', 'ours'] as const,
   posterCta: 'How big is yours?',
-  altText: (places: number) => `A glowing pink shape joining ${places} places on a faded world map seen from the North Pole, with each partner's own world in silver`,
+  altText: (places: number, share: string | null) =>
+    `A glowing pink shape joining ${places} places on a faded world map${share ? `, covering ${share} of the planet` : ''}, with each partner's own world in silver`,
 };

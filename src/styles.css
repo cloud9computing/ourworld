@@ -168,6 +168,9 @@ form { display: grid; gap: 18px; }
 .final.draw .final-a, .final.draw .final-b, .final.done .final-a, .final.done .final-b { transform: none; opacity: .35; }
 .final.merge .final-a, .final.merge .final-b { transform: none; }
 .final-counts, .final-cta { opacity: 0; transition: opacity .6s; }
+.final-counts { display: grid; gap: 4px; }
+.final-share { font-family: var(--serif); font-style: italic; font-size: 88px; line-height: 1; color: var(--pink); margin: 0; }
+.final-share.small { font-size: 40px; }
 .final.done .final-counts, .final.done .final-cta { opacity: 1; }
 .final.dim { background: #000; }
 

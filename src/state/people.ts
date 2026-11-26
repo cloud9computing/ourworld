@@ -10,6 +10,8 @@ export type Person = {
   answers: Record<number, City | undefined>;
   together: City[];
   lived: City[];
+  /** Every visited place this person named, in question order, then the lists. */
+  ordered: City[];
   places: PersonPlaces;
 };
 
@@ -20,7 +22,8 @@ export function toPerson(index: CityIndex, name: string, questions: number[], an
   const qs = questions.map(q => byId.get(q)).filter((q): q is BankQuestion => !!q);
   const pick = (act: number) => qs.filter(q => q.act === act).map(q => resolved[q.id]).filter((c): c is City => !!c);
   const t = together.map(get).filter((c): c is City => !!c), l = lived.map(get).filter((c): c is City => !!c);
-  return { name, answers: resolved, together: t, lived: l, places: { name, visited: [...pick(1), ...pick(2), ...t, ...l], dreams: pick(3) } };
+  const ordered = [...qs.filter(q => q.act !== 3).map(q => resolved[q.id]).filter((c): c is City => !!c), ...t, ...l];
+  return { name, answers: resolved, together: t, lived: l, ordered, places: { name, visited: [...pick(1), ...pick(2), ...t, ...l], dreams: pick(3) } };
 }
 
 export function me(index: CityIndex, g: Game): Person {
@@ -41,4 +44,14 @@ export function placeCount(g: Game): number {
   for (const a of Object.values(g.answers)) if (a?.status === 'answered' && a.place) ids.add(a.place);
   g.together.forEach(i => ids.add(i)); g.lived.forEach(i => ids.add(i));
   return ids.size;
+}
+
+/** Both people's answers interleaved question by question (first partner, then second), then the lists. */
+export function mentions(a: Person, b: Person): City[] {
+  const out: City[] = [];
+  for (let i = 0; i < Math.max(a.ordered.length, b.ordered.length); i++) {
+    if (a.ordered[i]) out.push(a.ordered[i]);
+    if (b.ordered[i]) out.push(b.ordered[i]);
+  }
+  return out;
 }

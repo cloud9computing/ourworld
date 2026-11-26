@@ -37,10 +37,13 @@ export function Final({ a, b, land, continentOf, onPoster }: {
         <Chart className="final-a" model={model} land={land} mode="a" view={model.view} dreams={false} label={copy.yourWorld(a.name)} />
         <Chart className="final-b" model={model} land={land} mode="b" view={model.view} dreams={false} label={copy.yourWorld(b.name)} />
         {(phase === 'draw' || phase === 'done') && (
-          <Chart className="final-ours" model={model} land={land} mode="ours" view={model.view} progress={progress} dreams={phase === 'done'} label={copy.altText(model.counts.places)} />
+          <Chart className="final-ours" model={model} land={land} mode="ours" view={model.view} progress={progress} dreams={phase === 'done'} label={copy.altText(model.counts.places, model.share)} />
         )}
       </div>
-      <p className="meta center final-counts">{copy.posterCounts(model.counts)}</p>
+      <div className="final-counts center">
+        {model.share ? <><p className="final-share">{model.share}</p><p className="meta">{copy.ofThePlanet}</p></> : <p className="final-share small">{copy.justStarted}</p>}
+        <p className="hint">{copy.supportLine(model.growth, model.counts.countries, model.counts.continents)}</p>
+      </div>
       <button className="primary final-cta" onClick={onPoster} disabled={phase !== 'done'}>See your poster</button>
     </main>
   );
