@@ -4,7 +4,7 @@ import { selectQuestions } from '../src/lib/game/select';
 import { BANK, byId, type Tier } from '../src/data/bank';
 
 const base = (role: 0 | 1, sealed: boolean): Game => ({
-  v: 3, gameId: 'aaaaaaaaaaaaaaaa', role, myName: role ? 'Tara' : 'Ravi', partnerName: role ? 'Ravi' : 'Tara', tier: 2,
+  v: 3, gameId: 'aaaaaaaaaaaaaaaa', role, myName: role ? 'Tara' : 'Ravi', partnerName: role ? 'Ravi' : 'Tara', tier: 2, round: 1,
   questions: selectQuestions('aaaaaaaaaaaaaaaa', 2), answers: {}, together: [], lived: [], createdAt: 0, ...(sealed ? { sealedAt: 1 } : {}),
 });
 

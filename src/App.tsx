@@ -7,7 +7,7 @@ import { answersLink, inviteLink, readLink, sharedLink, type Answer, type Invite
 import { exploreList } from './lib/explore';
 import { Explore } from './screens/Explore';
 import { buildWorld } from './lib/shape/world';
-import { clearGame, loadGame, myAnswers, randomHex, saveGame, withPartner, withShared, type Game } from './state/game';
+import { clearGame, countGamePlayed, gamesPlayed, loadGame, myAnswers, randomHex, saveGame, withPartner, withShared, type Game } from './state/game';
 import { bothPeople, isJustMet, me, placeCount } from './state/people';
 import { Landing } from './screens/Landing';
 import { Setup } from './screens/Setup';
@@ -114,13 +114,13 @@ export function App() {
     if (view.kind === 'setup') {
       page = <Setup onBack={() => setView({ kind: 'home' })} onDone={(myName: string, partnerName: string, tier: Tier) => {
         const gameId = randomHex(8);
-        const next: Game = { v: 3, gameId, role: 0, myName, partnerName, tier, questions: selectQuestions(gameId, tier), answers: {}, together: [], lived: [], createdAt: Date.now() };
+        const next: Game = { v: 3, gameId, role: 0, myName, partnerName, tier, round: gamesPlayed() + 1, questions: selectQuestions(gameId, tier), answers: {}, together: [], lived: [], createdAt: Date.now() };
         update(next); setView({ kind: 'invite' });
       }} />;
     } else if (view.kind === 'join') {
       const inv = view.invite;
       page = <Join from={inv.from} suggested={inv.to} onJoin={name => {
-        const next: Game = { v: 3, gameId: inv.gameId, role: 1, myName: name, partnerName: inv.from, tier: inv.tier, questions: inv.questions.filter(q => byId.has(q)), answers: {}, together: [], lived: [], started: true, createdAt: Date.now() };
+        const next: Game = { v: 3, gameId: inv.gameId, role: 1, myName: name, partnerName: inv.from, tier: inv.tier, round: inv.round, questions: inv.questions.filter(q => byId.has(q)), answers: {}, together: [], lived: [], started: true, createdAt: Date.now() };
         update(next); setView({ kind: 'q', i: 0 });
       }} />;
     } else if (view.kind === 'scanInvite') {
@@ -161,7 +161,7 @@ export function App() {
   switch (view.kind) {
     case 'invite':
       page = <Invite from={g.myName} partner={g.partnerName} onBack={() => setView({ kind: 'home' })}
-        link={inviteLink(location.origin, { gameId: g.gameId, tier: g.tier, from: g.myName, to: g.partnerName, questions: g.questions, indexVersion: index?.version ?? '00000000' })}
+        link={inviteLink(location.origin, { gameId: g.gameId, tier: g.tier, round: g.round, from: g.myName, to: g.partnerName, questions: g.questions, indexVersion: index?.version ?? '00000000' })}
         onStart={() => { update({ ...g, started: true }); setView({ kind: 'q', i: 0 }); }} />;
       break;
     case 'q': {
@@ -214,9 +214,9 @@ export function App() {
     case 'poster':
     case 'explore':
       if (!people || !land || !index) { page = <main className="screen"><p className="hint">Getting your worlds ready…</p></main>; break; }
-      if (view.kind === 'reveal') page = <Reveal a={people[0]} b={people[1]} tier={g.tier} gameId={g.gameId} questions={g.questions} index={index} land={land}
+      if (view.kind === 'reveal') page = <Reveal a={people[0]} b={people[1]} tier={g.tier} round={g.round} questions={g.questions} index={index} land={land}
         been={g.been ?? {}} went={g.went ?? []} onBeen={(key, together) => update({ ...g, been: { ...g.been, [key]: together } })}
-        onExit={() => setView({ kind: 'sealed' })} onFinal={() => { update({ ...g, revealDone: true }); setView({ kind: 'final' }); }} />;
+        onExit={() => setView({ kind: 'sealed' })} onFinal={() => { if (!g.revealDone) countGamePlayed(); update({ ...g, revealDone: true }); setView({ kind: 'final' }); }} />;
       else if (view.kind === 'final') page = <Final a={people[0]} b={people[1]} land={land} continentOf={continentOf}
         toExplore={explore.filter(e => !e.went).length} onPoster={() => setView({ kind: 'poster' })} />;
       else if (view.kind === 'explore') page = <Explore list={explore} partner={g.partnerName}

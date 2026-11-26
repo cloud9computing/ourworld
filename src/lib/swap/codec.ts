@@ -1,6 +1,7 @@
 // The two QR codes, packed small and carried after "#" in a link so no server ever sees them.
 //
-// Invite (#j=):  u8 format | u8 'J' | 8 bytes game id | u8 tier | name, partner name (u8 length + UTF-8)
+// Invite (#j=):  u8 format | u8 'J' | 8 bytes game id | u8 tier | u8 round (1 first game, 2 a replay, ...)
+//                | name, partner name (u8 length + UTF-8)
 //                | u8 count + u8 question ids | 4 bytes city index version | CRC-32
 // Shared (#r=):  u8 format | u8 'R' | 8 bytes game id | u8 count + (u8 question id, u8 role << 1 | together) choices
 //                | varint count + varint ids of places ticked off as "We went" | CRC-32
@@ -16,7 +17,7 @@ const MAX_NAME_BYTES = 40;
 export type Status = 'answered' | 'skipped';
 export type Answer = { status: Status; place?: number };
 
-export type Invite = { gameId: string; tier: Tier; from: string; to: string; questions: number[]; indexVersion: string };
+export type Invite = { gameId: string; tier: Tier; round: number; from: string; to: string; questions: number[]; indexVersion: string };
 export type Answers = { gameId: string; role: 0 | 1; answers: Answer[]; together: number[]; lived: number[] };
 
 /** What the reveal decided, so the other phone can keep the same places-to-explore list (R4). */
@@ -91,7 +92,7 @@ function open(bytes: Uint8Array, kind: 'J' | 'A' | 'R'): Reader {
 
 export function encodeInvite(v: Invite): Uint8Array {
   const w = new Writer();
-  w.u8(FORMAT); w.u8('J'.charCodeAt(0)); w.hex(v.gameId, 8); w.u8(v.tier); w.name(v.from); w.name(v.to);
+  w.u8(FORMAT); w.u8('J'.charCodeAt(0)); w.hex(v.gameId, 8); w.u8(v.tier); w.u8(Math.min(255, Math.max(1, v.round))); w.name(v.from); w.name(v.to);
   w.u8(v.questions.length); for (const q of v.questions) w.u8(q);
   w.hex(v.indexVersion, 4);
   return w.done();
@@ -99,15 +100,16 @@ export function encodeInvite(v: Invite): Uint8Array {
 
 export function decodeInvite(bytes: Uint8Array): Invite {
   const r = open(bytes, 'J');
-  const gameId = r.hex(8), tier = r.u8();
+  const gameId = r.hex(8), tier = r.u8(), round = r.u8();
   if (tier > 5) throw new CodeError('bad tier');
+  if (round < 1) throw new CodeError('bad round');
   const from = r.name(), to = r.name();
   const n = r.u8();
   if (n < 1 || n > 20) throw new CodeError('bad questions');
   const questions = Array.from({ length: n }, () => r.u8());
   const indexVersion = r.hex(4);
   r.end();
-  return { gameId, tier: tier as Tier, from, to, questions, indexVersion };
+  return { gameId, tier: tier as Tier, round, from, to, questions, indexVersion };
 }
 
 export function encodeAnswers(v: Answers): Uint8Array {

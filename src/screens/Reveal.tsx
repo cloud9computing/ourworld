@@ -21,8 +21,8 @@ type Step =
 const IN_WORLD = new Set(['past', 'us', 'mine', 'show', 'backTo']);
 const vibrate = () => { try { navigator.vibrate?.(30); } catch { /* not supported */ } };
 
-export function Reveal({ a, b, tier, gameId, questions, index, land, been, went, onBeen, onFinal, onExit }: {
-  a: Person; b: Person; tier: Tier; gameId: string; questions: number[]; index: CityIndex; land: ArrayLike<number>;
+export function Reveal({ a, b, tier, round, questions, index, land, been, went, onBeen, onFinal, onExit }: {
+  a: Person; b: Person; tier: Tier; round: number; questions: number[]; index: CityIndex; land: ArrayLike<number>;
   been: Record<string, boolean>; went: number[]; onBeen: (key: string, together: boolean) => void;
   onFinal: () => void; onExit: () => void;
 }) {
@@ -117,7 +117,7 @@ export function Reveal({ a, b, tier, gameId, questions, index, land, been, went,
       </div>
       {flipped >= 1 && (<div className="outcome">
         <p className="verdict center">{justMet ? copy.theirWorld(owner.name, place.name) : copy.beforeUs(owner.name, place.name)}</p>
-        <Prompts lines={[promptFor(q, gameId, owner.name)]} />
+        <Prompts lines={[promptFor(q, round, owner.name)]} />
         {choice === undefined ? (
           <div className="row choice">
             <button className="secondary" onClick={() => onBeen(key, true)}>{copy.beenTogether}</button>
@@ -152,8 +152,8 @@ export function Reveal({ a, b, tier, gameId, questions, index, land, been, went,
         </div>
       )}
       {flipped >= 2 && (guess
-        ? <GuessOutcome q={q} guesser={first} owner={second} guessCity={c1} truthCity={c2} same={m === 'same'} gameId={gameId} />
-        : <PairOutcome q={q} m={m} a={a} b={b} ca={c1} cb={c2} index={index} gameId={gameId} />)}
+        ? <GuessOutcome q={q} guesser={first} owner={second} guessCity={c1} truthCity={c2} same={m === 'same'} round={round} />
+        : <PairOutcome q={q} m={m} a={a} b={b} ca={c1} cb={c2} index={index} round={round} />)}
     </>);
   } else if (step.kind === 'lists' && justMet) {
     // "Just met": the list is "Any other places you love?", each person's own, so nothing is compared
@@ -204,14 +204,14 @@ function Prompts({ lines }: { lines: string[] }) {
   </div>);
 }
 
-function PairOutcome({ q, m, a, b, ca, cb, index, gameId }: {
-  q: BankQuestion; m: ReturnType<typeof classify>; a: Person; b: Person; ca?: City; cb?: City; index: CityIndex; gameId: string;
+function PairOutcome({ q, m, a, b, ca, cb, index, round }: {
+  q: BankQuestion; m: ReturnType<typeof classify>; a: Person; b: Person; ca?: City; cb?: City; index: CityIndex; round: number;
 }) {
   const fact = ca && cb && m !== 'same' ? connectingFact(ca, cb, index) : '';
   // prompts go to whoever gave each answer; a match asks both
   const prompts = m === 'same'
-    ? [promptFor(q, gameId, 'each other')]
-    : [...(ca ? [promptFor(q, gameId, a.name)] : []), ...(cb ? [promptFor(q, gameId, b.name)] : [])];
+    ? [promptFor(q, round, 'each other')]
+    : [...(ca ? [promptFor(q, round, a.name)] : []), ...(cb ? [promptFor(q, round, b.name)] : [])];
   let line = '', sub = '';
   const who = m === 'onlyA' ? a.name : b.name, city = m === 'onlyA' ? ca : cb;
   if (m === 'same') {
@@ -237,10 +237,10 @@ function PairOutcome({ q, m, a, b, ca, cb, index, gameId }: {
   </div>);
 }
 
-function GuessOutcome({ q, guesser, owner, guessCity, truthCity, same, gameId }: {
-  q: BankQuestion; guesser: Person; owner: Person; guessCity?: City; truthCity?: City; same: boolean; gameId: string;
+function GuessOutcome({ q, guesser, owner, guessCity, truthCity, same, round }: {
+  q: BankQuestion; guesser: Person; owner: Person; guessCity?: City; truthCity?: City; same: boolean; round: number;
 }) {
-  const prompt = guessCity ? [promptFor(q, gameId, guesser.name)] : [];
+  const prompt = guessCity ? [promptFor(q, round, guesser.name)] : [];
   if (same && truthCity) {
     return (<div className="outcome same">
       <p className="verdict same center">{copy.guessedRight(guesser.name, truthCity.name)}</p>

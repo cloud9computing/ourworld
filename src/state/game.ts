@@ -10,6 +10,8 @@ export type Game = {
   myName: string;
   partnerName: string;
   tier: Tier;
+  /** 1 on a couple's first game, 2 on a replay, ...: picks Prompt 1 or Prompt 2. */
+  round: number;
   questions: number[];
   answers: Record<number, Answer>;
   together: number[];
@@ -83,4 +85,13 @@ export function withPartner(g: Game, a: Answers): Game {
 export function withShared(g: Game, s: Shared): Game {
   if (s.gameId !== g.gameId) throw new Error('This code is from a different game.');
   return { ...g, been: { ...s.been, ...g.been }, went: [...new Set([...(g.went ?? []), ...s.went])] };
+}
+
+const PLAYED_KEY = 'ourworld.played';
+/** How many games this phone has played to the end: the next game it starts is round played + 1. */
+export function gamesPlayed(): number {
+  try { return Number(localStorage.getItem(PLAYED_KEY)) || 0; } catch { return 0; }
+}
+export function countGamePlayed(): void {
+  try { localStorage.setItem(PLAYED_KEY, String(gamesPlayed() + 1)); } catch { /* ignore */ }
 }

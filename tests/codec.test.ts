@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decodeAnswers, decodeInvite, encodeAnswers, encodeInvite, answersLink, inviteLink, readLink, sharedLink, type Answers, type Invite } from '../src/lib/swap/codec';
 
-const invite: Invite = { gameId: '0123456789abcdef', tier: 2, from: 'Ravi', to: 'Tara', questions: [1, 3, 4, 11, 12, 13, 14, 15, 16, 31, 32, 34], indexVersion: 'abcc0607' };
+const invite: Invite = { gameId: '0123456789abcdef', tier: 2, round: 2, from: 'Ravi', to: 'Tara', questions: [1, 3, 4, 11, 12, 13, 14, 15, 16, 31, 32, 34], indexVersion: 'abcc0607' };
 const answers: Answers = {
   gameId: '0123456789abcdef', role: 1,
   answers: Array.from({ length: 12 }, (_, i) => (i % 4 === 3 ? { status: 'skipped' as const } : { status: 'answered' as const, place: 1_000_000 + i * 12345 })),

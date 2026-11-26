@@ -1,6 +1,6 @@
 # Our World: question sets by how long a couple has been together
 
-This replaces the question bank and tier rules in the PRD (section 7) and in PRD changes v3 (R1). Each tier gets a fixed set of 12 questions. Every question has the place it asks for and one "ask your partner" prompt that appears on its reveal card (R2 in v3). Each prompt needs one or two more variants before launch so replays don't repeat.
+This replaces the question bank and tier rules in the PRD (section 7) and in PRD changes v3 (R1). Each tier gets a fixed set of 12 questions. Every question has two "ask your partner" prompts for its reveal card (R2 in v3). The first game a couple plays shows Prompt 1, and a replay shows Prompt 2, so a second play feels fresh.
 
 ## Tiers
 
@@ -39,20 +39,20 @@ Across all tiers:
 
 Acts are renamed: **Your world · First impressions · Maybe someday**. Act 1 has 5 questions and Act 2 has 3.
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Your world | The place you grew up | What's one thing every visitor gets wrong about it? |
-| 2 | Your world | The place you feel most like yourself | What do you do in your first hour there? |
-| 3 | Your world | The best trip you've ever taken | What's the story you always tell about it? |
-| 4 | Your world | A place that completely surprised you | What did you expect, and what was it really like? |
-| 5 | Your world | Where you'd go for a weekend on your own | What does the perfect day there look like? |
-| 6 | First impressions | Guess: where did I grow up? | What made you guess that? |
-| 7 | First impressions | Guess: which city feels most like me? | What gave it away? |
-| 8 | First impressions | Where you'd take me on a perfect date | What would we do there? |
-| 9 | Maybe someday | A place you've always wanted to go | When did you first want to go? |
-| 10 | Maybe someday | A place you'd love to show me someday | What would we do first? |
-| 11 | Maybe someday | A city you'd live in for a year if you could | What would a Tuesday there look like? |
-| 12 | Maybe someday | A place you'd go tomorrow if you could | What would you pack first? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Your world | The place you grew up | What's one thing every visitor gets wrong about it? | Where would you take me first if we went? |
+| 2 | Your world | The place you feel most like yourself | What do you do in your first hour there? | What does it feel like the moment you arrive? |
+| 3 | Your world | The best trip you've ever taken | What's the story you always tell about it? | What would you do differently if you went again? |
+| 4 | Your world | A place that completely surprised you | What did you expect, and what was it really like? | Would you go back? |
+| 5 | Your world | Where you'd go for a weekend on your own | What does the perfect day there look like? | What would you leave behind? |
+| 6 | First impressions | Guess: where did I grow up? | What made you guess that? | What do you imagine I was like as a kid? |
+| 7 | First impressions | Guess: which city feels most like me? | What gave it away? | Which city do you think I'd pick for you? |
+| 8 | First impressions | Where you'd take me on a perfect date | What would we do there? | What time of day would it be? |
+| 9 | Maybe someday | A place you've always wanted to go | When did you first want to go? | What's the first thing you'd do there? |
+| 10 | Maybe someday | A place you'd love to show me someday | What would we do first? | What would you want me to notice? |
+| 11 | Maybe someday | A city you'd live in for a year if you could | What would a Tuesday there look like? | What would you miss from home? |
+| 12 | Maybe someday | A place you'd go tomorrow if you could | What would you pack first? | How would you spend the first evening? |
 
 **Special rules for "Just met"**
 - **Guess questions (6 and 7) are linked** to the partner's own answers to questions 1 and 2. The reveal shows the guess next to the real answer: "Kabir guessed Mumbai. Aanya grew up in Jaipur." A correct guess gets the match celebration, and a wrong one gets warm copy ("Now you know") with the prompt.
@@ -64,88 +64,88 @@ Acts are renamed: **Your world · First impressions · Maybe someday**. Act 1 ha
 
 The Act 2 name is "Us so far".
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Before us | Where you were happiest as a kid | What did a perfect day there look like? |
-| 2 | Before us | A place your family always tells stories about | Which story do they tell most? |
-| 3 | Before us | The best trip you took before we met | What's the story you always tell about it? |
-| 4 | Before us | The place you feel most like yourself | What do you do in your first hour there? |
-| 5 | Us so far | The trip of ours you'd relive first | Which moment would you go back to? |
-| 6 | Us so far | Where you knew this was something | What happened that made you sure? |
-| 7 | Us so far | Where you saw me happiest *(about partner)* | What did you notice that day? |
-| 8 | Us so far | The place you'd go back to tomorrow | What would you do differently this time? |
-| 9 | Next | Where you want to take me next | What's the first thing we'd do there? |
-| 10 | Next | A place you've always wanted to go but never mentioned | When did you first want to go? |
-| 11 | Next | A place from your past you want to show me | What do you want me to see there? |
-| 12 | Next | If we could move anywhere for a year | What would our weekends look like? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Before us | Where you were happiest as a kid | What did a perfect day there look like? | Who made it so happy? |
+| 2 | Before us | A place your family always tells stories about | Which story do they tell most? | Which story do you tell? |
+| 3 | Before us | The best trip you took before we met | What's the story you always tell about it? | What would you do differently if you went again? |
+| 4 | Before us | The place you feel most like yourself | What do you do in your first hour there? | What does it feel like the moment you arrive? |
+| 5 | Us so far | The trip of ours you'd relive first | Which moment would you go back to? | What would you keep exactly the same? |
+| 6 | Us so far | Where you knew this was something | What happened that made you sure? | Did you tell anyone that day? |
+| 7 | Us so far | Where you saw me happiest *(about partner)* | What did you notice that day? | Did you tell me at the time? |
+| 8 | Us so far | The place you'd go back to tomorrow | What would you do differently this time? | What's the first thing you'd do there? |
+| 9 | Next | Where you want to take me next | What's the first thing we'd do there? | When should we go? |
+| 10 | Next | A place you've always wanted to go but never mentioned | When did you first want to go? | What's the first thing you'd do there? |
+| 11 | Next | A place from your past you want to show me | What do you want me to see there? | Where would we eat? |
+| 12 | Next | If we could move anywhere for a year | What would our weekends look like? | What would you miss most from here? |
 
 ## 1–3 years
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Before us | Where you were happiest as a kid | What did a perfect day there look like? |
-| 2 | Before us | The best trip you took without me | What's the story you always tell about it? |
-| 3 | Before us | A place you'd go back to just for the food | What's the one dish? |
-| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? |
-| 5 | Us | Where something went hilariously wrong | Tell it from your side. |
-| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? |
-| 7 | Us | The best meal we've had on a trip | Do you both remember it the same way? |
-| 8 | Us | The place you'd go back to tomorrow | What would you do differently this time? |
-| 9 | Next | Where you want to take me next | What's the first thing we'd do there? |
-| 10 | Next | A place you've always wanted to go but never mentioned | What stopped you from mentioning it? |
-| 11 | Next | A place from your past you want to show me | What do you want me to see there? |
-| 12 | Next | A city you could see us living in for a year | What would our weekends look like? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Before us | Where you were happiest as a kid | What did a perfect day there look like? | Who made it so happy? |
+| 2 | Before us | The best trip you took without me | What's the story you always tell about it? | What would you do differently if you went again? |
+| 3 | Before us | A place you'd go back to just for the food | What's the one dish? | Where exactly would you take me to eat it? |
+| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? | When were you last there? |
+| 5 | Us | Where something went hilariously wrong | Tell it from your side. | Who laughed first? |
+| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? | Did you tell me at the time? |
+| 7 | Us | The best meal we've had on a trip | Do you both remember it the same way? | What would you order if we went back? |
+| 8 | Us | The place you'd go back to tomorrow | What would you do differently this time? | What's the first thing you'd do there? |
+| 9 | Next | Where you want to take me next | What's the first thing we'd do there? | When should we go? |
+| 10 | Next | A place you've always wanted to go but never mentioned | What stopped you from mentioning it? | What's the first thing you'd do there? |
+| 11 | Next | A place from your past you want to show me | What do you want me to see there? | Where would we eat? |
+| 12 | Next | A city you could see us living in for a year | What would our weekends look like? | Which neighbourhood would we pick? |
 
 ## 3–7 years
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Before us | A place you'd go back to just for the food | What's the one dish? |
-| 2 | Before us | A place from your childhood I've never been to | What's your earliest memory there? |
-| 3 | Before us | The best trip you took without me | Is there a part of that story I haven't heard? |
-| 4 | Before us | A place you wish I'd seen with you | What would you have shown me? |
-| 5 | Us | Where we laughed hardest on a trip | Do you remember what started it? |
-| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? |
-| 7 | Us | Where I surprised you *(about partner)* | What did I do? |
-| 8 | Us | The place you'd go back to tomorrow | What would you do differently this time? |
-| 9 | Next | Where you'd want to spend our next anniversary | What would the day look like? |
-| 10 | Next | A place you've always wanted to go but never mentioned | What stopped you from mentioning it? |
-| 11 | Next | A place from your past you want to show me | What do you want me to see there? |
-| 12 | Next | Where you'd love us to spend a whole summer someday | What would we do every evening? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Before us | A place you'd go back to just for the food | What's the one dish? | Where exactly would you take me to eat it? |
+| 2 | Before us | A place from your childhood I've never been to | What's your earliest memory there? | What would we do there together now? |
+| 3 | Before us | The best trip you took without me | Is there a part of that story I haven't heard? | What would you do differently if you went again? |
+| 4 | Before us | A place you wish I'd seen with you | What would you have shown me? | What do you think I'd have loved most? |
+| 5 | Us | Where we laughed hardest on a trip | Do you remember what started it? | Who laughed first? |
+| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? | Did you tell me at the time? |
+| 7 | Us | Where I surprised you *(about partner)* | What did I do? | What did you think of me after that? |
+| 8 | Us | The place you'd go back to tomorrow | What would you do differently this time? | What's the first thing you'd do there? |
+| 9 | Next | Where you'd want to spend our next anniversary | What would the day look like? | What should we do that we've never done? |
+| 10 | Next | A place you've always wanted to go but never mentioned | What stopped you from mentioning it? | What's the first thing you'd do there? |
+| 11 | Next | A place from your past you want to show me | What do you want me to see there? | Where would we eat? |
+| 12 | Next | Where you'd love us to spend a whole summer someday | What would we do every evening? | What would a lazy Sunday there look like? |
 
 ## 7–15 years
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Before us | The childhood holiday you'd relive | What's one thing you did there every time? |
-| 2 | Before us | Where you'd take me to meet the person you were at 22 | What would that version of you think of us? |
-| 3 | Before us | A place you'd go back to just for the food | What's the one dish? |
-| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? |
-| 5 | Us | Where we laughed hardest on a trip | Do you remember what started it? |
-| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? |
-| 7 | Us | Where you fell for me all over again *(about partner)* | What was I doing? |
-| 8 | Us | The trip that changed us | What was different afterwards? |
-| 9 | Next | Our next adventure, just the two of us | What's the first thing we'd do there? |
-| 10 | Next | A trip that's been waiting for the right time | What would make it the right time? |
-| 11 | Next | A place from your past you want to show me | What do you want me to see there? |
-| 12 | Next | Where you'd love us to spend a month every year when we're older | What does a morning there look like? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Before us | The childhood holiday you'd relive | What's one thing you did there every time? | Who was there with you? |
+| 2 | Before us | Where you'd take me to meet the person you were at 22 | What would that version of you think of us? | What would you tell that version of yourself? |
+| 3 | Before us | A place you'd go back to just for the food | What's the one dish? | Where exactly would you take me to eat it? |
+| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? | When were you last there? |
+| 5 | Us | Where we laughed hardest on a trip | Do you remember what started it? | Who laughed first? |
+| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? | Did you tell me at the time? |
+| 7 | Us | Where you fell for me all over again *(about partner)* | What was I doing? | Did I know? |
+| 8 | Us | The trip that changed us | What was different afterwards? | What do you remember feeling on the way home? |
+| 9 | Next | Our next adventure, just the two of us | What's the first thing we'd do there? | When should we go? |
+| 10 | Next | A trip that's been waiting for the right time | What would make it the right time? | What if the right time is this year? |
+| 11 | Next | A place from your past you want to show me | What do you want me to see there? | Where would we eat? |
+| 12 | Next | Where you'd love us to spend a month every year when we're older | What does a morning there look like? | What would our routine be? |
 
 ## 15+ years
 
-| # | Act | Question | Ask your partner |
-|---|---|---|---|
-| 1 | Before us | The childhood trip you'd relive | What's one thing you remember about getting there? |
-| 2 | Before us | Where you'd take me to meet the young you | What would that version of you think of us? |
-| 3 | Before us | A place you'd go back to just for the food | What's the one dish? |
-| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? |
-| 5 | Us | Where we were happiest with very little | What do you miss about those days? |
-| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? |
-| 7 | Us | Where you fell for me all over again *(about partner)* | What was I doing? |
-| 8 | Us | A place from our early days we should go back to | What would we do there now? |
-| 9 | Next | Our next adventure, just the two of us | What's the first thing we'd do there? |
-| 10 | Next | A place still on your list since you were young | Why hasn't it happened yet? |
-| 11 | Next | A place from your past you want to show me | What do you want me to see there? |
-| 12 | Next | Where you'd love us to spend a month every year when we're older | What does a morning there look like? |
+| # | Act | Question | Prompt 1 | Prompt 2 |
+|---|---|---|---|---|
+| 1 | Before us | The childhood trip you'd relive | What's one thing you remember about getting there? | Who was there with you? |
+| 2 | Before us | Where you'd take me to meet the young you | What would that version of you think of us? | What would you tell that version of yourself? |
+| 3 | Before us | A place you'd go back to just for the food | What's the one dish? | Where exactly would you take me to eat it? |
+| 4 | Before us | A place that feels like home but isn't home | What makes it feel that way? | When were you last there? |
+| 5 | Us | Where we were happiest with very little | What do you miss about those days? | What did a perfect day cost us back then? |
+| 6 | Us | Where you saw me happiest *(about partner)* | What did you notice that day? | Did you tell me at the time? |
+| 7 | Us | Where you fell for me all over again *(about partner)* | What was I doing? | Did I know? |
+| 8 | Us | A place from our early days we should go back to | What would we do there now? | What do you think has changed there? |
+| 9 | Next | Our next adventure, just the two of us | What's the first thing we'd do there? | When should we go? |
+| 10 | Next | A place still on your list since you were young | Why hasn't it happened yet? | What would you do first when you finally get there? |
+| 11 | Next | A place from your past you want to show me | What do you want me to see there? | Where would we eat? |
+| 12 | Next | Where you'd love us to spend a month every year when we're older | What does a morning there look like? | What would our routine be? |
 
 ## Checks every set must pass
 

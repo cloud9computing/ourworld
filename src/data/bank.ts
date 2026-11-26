@@ -33,8 +33,8 @@ export type BankQuestion = {
   kind: Kind;
   text: string;
   shared?: string;
-  /** Ask-your-partner prompts (R2), rotated between games. Each reads after "Ask Ravi: ". */
-  prompts: string[];
+  /** Ask-your-partner prompts (R2): Prompt 1 on a couple's first game, Prompt 2 on a replay. Each reads after "Ask Ravi: ". */
+  prompts: [string, string];
   origin: string;
   /** Used in "Two good …" when two different places come up. */
   noun: string;
@@ -45,116 +45,205 @@ export type BankQuestion = {
   truth?: (owner: string, place: string) => string;
 };
 
-type Row = [act: Act, kind: Kind, text: string, prompts: string[], origin: string, noun: string, extra?: Partial<BankQuestion>];
+type Row = [act: Act, kind: Kind, text: string, origin: string, noun: string, extra?: Partial<BankQuestion>];
 
 const happiestAbout = (who: string, subject: string, place: string) => `${who} says ${subject} was happiest in ${place}.`;
 const surprisedAbout = (who: string, subject: string, place: string) => `${who} remembers a surprise from ${subject} in ${place}.`;
 const fellAbout = (who: string, subject: string, place: string) => `${who} fell for ${subject} all over again in ${place}.`;
 
-const FOOD: Row = [1, 'past', 'A place you’d go back to just for the food', ['What’s the one dish?', 'Who would you take with you to eat it?', 'What does the place smell like when you walk in?'], 'the food {a} would go back for', 'meals'];
-const HOME_NOT_HOME: Row = [1, 'past', 'A place that feels like home but isn’t home', ['What makes it feel that way?', 'What’s the first thing you do when you get there?'], '{a}’s home away from home', 'second homes', { shared: 'A place that feels like home but isn’t home' }];
-const SAW_HAPPIEST: Row = [2, 'us', 'Where you saw {p} happiest', ['What did you notice that day?', 'What do you remember about the moment?'], 'where {a} saw {p} happiest', 'happy places', { shared: 'Where you saw each other happiest', about: happiestAbout }];
-const BACK_TOMORROW: Row = [2, 'us', 'The place you’d go back to tomorrow', ['What would you do differently this time?', 'Where would you have breakfast on the first morning?'], 'where {a} would go back tomorrow', 'places to go back to'];
-const TAKE_NEXT: Row = [3, 'dream', 'Where you want to take {p} next', ['What’s the first thing we’d do there?', 'What would we eat on the first night?'], 'where {a} wants to take {p} next', 'next trips', { shared: 'Where you want to take each other next' }];
-const NEVER_MENTIONED: Row = [3, 'dream', 'A place you’ve always wanted to go but never mentioned', ['What stopped you from mentioning it?', 'When did you first want to go?'], 'on {a}’s secret wishlist', 'secret wishes'];
-const SHOW_PAST: Row = [3, 'show', 'A place from your past you want to show {p}', ['What do you want me to see there?', 'Where would we go first?'], 'the place {a} wants to show {p}', 'places to show each other', { shared: 'A place from your past to show each other' }];
-const LAUGHED: Row = [2, 'us', 'Where we laughed hardest on a trip', ['Do you remember what started it?', 'Could you do the impression?'], 'where you laughed hardest', 'laughs'];
-const NEXT_ADVENTURE: Row = [3, 'dream', 'Our next adventure, just the two of us', ['What’s the first thing we’d do there?', 'What would we leave at home?'], '{a}’s idea for your next adventure', 'adventures'];
-const MONTH_A_YEAR: Row = [3, 'dream', 'Where you’d love us to spend a month every year when we’re older', ['What does a morning there look like?', 'What would our favourite café be?'], 'where {a} pictures a month every year', 'months away'];
-const FELL_AGAIN: Row = [2, 'us', 'Where you fell for {p} all over again', ['What was I doing?', 'What were we wearing?'], 'where {a} fell for {p} all over again', 'moments', { shared: 'Where you fell for each other all over again', about: fellAbout }];
+const FOOD: Row = [1, 'past', 'A place you’d go back to just for the food', 'the food {a} would go back for', 'meals'];
+const HOME_NOT_HOME: Row = [1, 'past', 'A place that feels like home but isn’t home', '{a}’s home away from home', 'second homes', { shared: 'A place that feels like home but isn’t home' }];
+const SAW_HAPPIEST: Row = [2, 'us', 'Where you saw {p} happiest', 'where {a} saw {p} happiest', 'happy places', { shared: 'Where you saw each other happiest', about: happiestAbout }];
+const BACK_TOMORROW: Row = [2, 'us', 'The place you’d go back to tomorrow', 'where {a} would go back tomorrow', 'places to go back to'];
+const TAKE_NEXT: Row = [3, 'dream', 'Where you want to take {p} next', 'where {a} wants to take {p} next', 'next trips', { shared: 'Where you want to take each other next' }];
+const NEVER_MENTIONED: Row = [3, 'dream', 'A place you’ve always wanted to go but never mentioned', 'on {a}’s secret wishlist', 'secret wishes'];
+const SHOW_PAST: Row = [3, 'show', 'A place from your past you want to show {p}', 'the place {a} wants to show {p}', 'places to show each other', { shared: 'A place from your past to show each other' }];
+const LAUGHED: Row = [2, 'us', 'Where we laughed hardest on a trip', 'where you laughed hardest', 'laughs'];
+const NEXT_ADVENTURE: Row = [3, 'dream', 'Our next adventure, just the two of us', '{a}’s idea for your next adventure', 'adventures'];
+const MONTH_A_YEAR: Row = [3, 'dream', 'Where you’d love us to spend a month every year when we’re older', 'where {a} pictures a month every year', 'months away'];
+const FELL_AGAIN: Row = [2, 'us', 'Where you fell for {p} all over again', 'where {a} fell for {p} all over again', 'moments', { shared: 'Where you fell for each other all over again', about: fellAbout }];
 
 const SETS: Record<Tier, Row[]> = {
   0: [ // Just met: Your world · First impressions · Maybe someday (5 · 3 · 4)
-    [1, 'past', 'The place you grew up', ['What’s one thing every visitor gets wrong about it?', 'Where would you take a friend on their first evening there?'], 'where {a} grew up', 'hometowns'],
-    [1, 'past', 'The place you feel most like yourself', ['What do you do in your first hour there?', 'What do you always buy there?'], 'where {a} feels most at ease', 'places'],
-    [1, 'past', 'The best trip you’ve ever taken', ['What’s the story you always tell about it?', 'Who were you with?'], '{a}’s best trip ever', 'trips'],
-    [1, 'past', 'A place that completely surprised you', ['What did you expect, and what was it really like?', 'What surprised you most?'], 'the place that surprised {a}', 'surprises'],
-    [1, 'past', 'Where you’d go for a weekend on your own', ['What does the perfect day there look like?', 'What would you skip that everyone else does?'], '{a}’s weekend spot', 'weekends'],
-    [2, 'guess', 'Guess: where did {p} grow up?', ['What made you guess that?', 'What do you picture it looks like?'], '', 'guesses', { shared: 'Guess: where did the other grow up?', guessOf: 1, truth: (o, p) => `${o} grew up in ${p}.` }],
-    [2, 'guess', 'Guess: which city feels most like {p}?', ['What gave it away?', 'What about me made you think of it?'], '', 'guesses', { shared: 'Guess: which city feels most like the other?', guessOf: 2, truth: (o, p) => `${o}’s own answer: ${p}.` }],
-    [2, 'mine', 'Where you’d take {p} on a perfect date', ['What would we do there?', 'What time would we start?'], 'where {a} would take {p} on a perfect date', 'dates', { shared: 'Where you’d take each other on a perfect date' }],
-    [3, 'dream', 'A place you’ve always wanted to go', ['When did you first want to go?', 'What would you do on day one?'], 'on {a}’s wishlist', 'wishes'],
-    [3, 'show', 'A place you’d love to show {p} someday', ['What would we do first?', 'What should I bring?'], 'the place {a} wants to show {p}', 'places to show each other', { shared: 'A place you’d love to show each other someday' }],
-    [3, 'dream', 'A city you’d live in for a year if you could', ['What would a Tuesday there look like?', 'Which neighbourhood would you pick?'], 'where {a} would live for a year', 'years away'],
-    [3, 'dream', 'A place you’d go tomorrow if you could', ['What would you pack first?', 'Who would you call when you landed?'], 'where {a} would go tomorrow', 'escapes'],
+    [1, 'past', 'The place you grew up', 'where {a} grew up', 'hometowns'],
+    [1, 'past', 'The place you feel most like yourself', 'where {a} feels most at ease', 'places'],
+    [1, 'past', 'The best trip you’ve ever taken', '{a}’s best trip ever', 'trips'],
+    [1, 'past', 'A place that completely surprised you', 'the place that surprised {a}', 'surprises'],
+    [1, 'past', 'Where you’d go for a weekend on your own', '{a}’s weekend spot', 'weekends'],
+    [2, 'guess', 'Guess: where did {p} grow up?', '', 'guesses', { shared: 'Guess: where did the other grow up?', guessOf: 1, truth: (o, p) => `${o} grew up in ${p}.` }],
+    [2, 'guess', 'Guess: which city feels most like {p}?', '', 'guesses', { shared: 'Guess: which city feels most like the other?', guessOf: 2, truth: (o, p) => `${o}’s own answer: ${p}.` }],
+    [2, 'mine', 'Where you’d take {p} on a perfect date', 'where {a} would take {p} on a perfect date', 'dates', { shared: 'Where you’d take each other on a perfect date' }],
+    [3, 'dream', 'A place you’ve always wanted to go', 'on {a}’s wishlist', 'wishes'],
+    [3, 'show', 'A place you’d love to show {p} someday', 'the place {a} wants to show {p}', 'places to show each other', { shared: 'A place you’d love to show each other someday' }],
+    [3, 'dream', 'A city you’d live in for a year if you could', 'where {a} would live for a year', 'years away'],
+    [3, 'dream', 'A place you’d go tomorrow if you could', 'where {a} would go tomorrow', 'escapes'],
   ],
   1: [ // Under a year: Before us · Us so far · Next
-    [1, 'past', 'Where you were happiest as a kid', ['What did a perfect day there look like?', 'What did it smell like?'], 'where {a} was happiest as a kid', 'childhoods'],
-    [1, 'past', 'A place your family always tells stories about', ['Which story do they tell most?', 'Who tells it best?'], 'where {a}’s family stories come from', 'family stories'],
-    [1, 'past', 'The best trip you took before we met', ['What’s the story you always tell about it?', 'What did you bring back?'], '{a}’s best trip before you met', 'trips'],
-    [1, 'past', 'The place you feel most like yourself', ['What do you do in your first hour there?', 'What do you always buy there?'], 'where {a} feels most at ease', 'places'],
-    [2, 'us', 'The trip of ours you’d relive first', ['Which moment would you go back to?', 'What would you pack differently?'], 'the trip {a} would relive first', 'trips'],
-    [2, 'us', 'Where you knew this was something', ['What happened that made you sure?', 'What were we doing just before?'], 'where {a} knew', 'moments'],
+    [1, 'past', 'Where you were happiest as a kid', 'where {a} was happiest as a kid', 'childhoods'],
+    [1, 'past', 'A place your family always tells stories about', 'where {a}’s family stories come from', 'family stories'],
+    [1, 'past', 'The best trip you took before we met', '{a}’s best trip before you met', 'trips'],
+    [1, 'past', 'The place you feel most like yourself', 'where {a} feels most at ease', 'places'],
+    [2, 'us', 'The trip of ours you’d relive first', 'the trip {a} would relive first', 'trips'],
+    [2, 'us', 'Where you knew this was something', 'where {a} knew', 'moments'],
     SAW_HAPPIEST,
     BACK_TOMORROW,
     TAKE_NEXT,
-    [3, 'dream', 'A place you’ve always wanted to go but never mentioned', ['When did you first want to go?', 'What would you do on day one?'], 'on {a}’s secret wishlist', 'secret wishes'],
+    [3, 'dream', 'A place you’ve always wanted to go but never mentioned', 'on {a}’s secret wishlist', 'secret wishes'],
     SHOW_PAST,
-    [3, 'dream', 'If we could move anywhere for a year', ['What would our weekends look like?', 'What would we miss from home?'], 'where {a} would move for a year', 'years away'],
+    [3, 'dream', 'If we could move anywhere for a year', 'where {a} would move for a year', 'years away'],
   ],
   2: [ // 1–3 years
-    [1, 'past', 'Where you were happiest as a kid', ['What did a perfect day there look like?', 'What did it smell like?'], 'where {a} was happiest as a kid', 'childhoods'],
-    [1, 'past', 'The best trip you took without {p}', ['What’s the story you always tell about it?', 'What did you bring back?'], '{a}’s best trip without {p}', 'trips', { shared: 'The best trip you took without each other' }],
+    [1, 'past', 'Where you were happiest as a kid', 'where {a} was happiest as a kid', 'childhoods'],
+    [1, 'past', 'The best trip you took without {p}', '{a}’s best trip without {p}', 'trips', { shared: 'The best trip you took without each other' }],
     FOOD,
     HOME_NOT_HOME,
-    [2, 'us', 'Where something went hilariously wrong', ['Tell it from your side.', 'When did it start being funny?'], 'where something went hilariously wrong', 'stories'],
+    [2, 'us', 'Where something went hilariously wrong', 'where something went hilariously wrong', 'stories'],
     SAW_HAPPIEST,
-    [2, 'us', 'The best meal we’ve had on a trip', ['Do you both remember it the same way?', 'What did we order?'], 'your best meal on a trip', 'meals'],
+    [2, 'us', 'The best meal we’ve had on a trip', 'your best meal on a trip', 'meals'],
     BACK_TOMORROW,
     TAKE_NEXT,
     NEVER_MENTIONED,
     SHOW_PAST,
-    [3, 'dream', 'A city you could see us living in for a year', ['What would our weekends look like?', 'What would we miss from home?'], 'where {a} could see you living for a year', 'years away'],
+    [3, 'dream', 'A city you could see us living in for a year', 'where {a} could see you living for a year', 'years away'],
   ],
   3: [ // 3–7 years
     FOOD,
-    [1, 'past', 'A place from your childhood {p} has never been to', ['What’s your earliest memory there?', 'Who would we visit there?'], '{a}’s childhood place {p} hasn’t seen', 'childhoods', { shared: 'A childhood place the other has never been to' }],
-    [1, 'past', 'The best trip you took without {p}', ['Is there a part of that story I haven’t heard?', 'What did you bring back?'], '{a}’s best trip without {p}', 'trips', { shared: 'The best trip you took without each other' }],
-    [1, 'past', 'A place you wish {p} had seen with you', ['What would you have shown me?', 'What would we have done on the first night?'], 'where {a} wishes you’d been together', 'places', { shared: 'A place you wish the other had seen with you' }],
+    [1, 'past', 'A place from your childhood {p} has never been to', '{a}’s childhood place {p} hasn’t seen', 'childhoods', { shared: 'A childhood place the other has never been to' }],
+    [1, 'past', 'The best trip you took without {p}', '{a}’s best trip without {p}', 'trips', { shared: 'The best trip you took without each other' }],
+    [1, 'past', 'A place you wish {p} had seen with you', 'where {a} wishes you’d been together', 'places', { shared: 'A place you wish the other had seen with you' }],
     LAUGHED,
     SAW_HAPPIEST,
-    [2, 'us', 'Where {p} surprised you', ['What did I do?', 'How long did it take you to work it out?'], 'where {p} surprised {a}', 'surprises', { shared: 'Where you surprised each other', about: surprisedAbout }],
+    [2, 'us', 'Where {p} surprised you', 'where {p} surprised {a}', 'surprises', { shared: 'Where you surprised each other', about: surprisedAbout }],
     BACK_TOMORROW,
-    [3, 'dream', 'Where you’d want to spend our next anniversary', ['What would the day look like?', 'Where would we have dinner?'], 'where {a} wants to spend your next anniversary', 'anniversaries'],
+    [3, 'dream', 'Where you’d want to spend our next anniversary', 'where {a} wants to spend your next anniversary', 'anniversaries'],
     NEVER_MENTIONED,
     SHOW_PAST,
-    [3, 'dream', 'Where you’d love us to spend a whole summer someday', ['What would we do every evening?', 'What would we do on rainy days?'], 'where {a} pictures a summer together', 'summers'],
+    [3, 'dream', 'Where you’d love us to spend a whole summer someday', 'where {a} pictures a summer together', 'summers'],
   ],
   4: [ // 7–15 years
-    [1, 'past', 'The childhood holiday you’d relive', ['What’s one thing you did there every time?', 'Who was always there?'], '{a}’s favourite childhood holiday', 'holidays'],
-    [1, 'past', 'Where you’d take {p} to meet the person you were at 22', ['What would that version of you think of us?', 'Where would we find you on a Friday night?'], 'where {a} was at 22', 'past lives', { shared: 'Where you’d go to meet the person you were at 22' }],
+    [1, 'past', 'The childhood holiday you’d relive', '{a}’s favourite childhood holiday', 'holidays'],
+    [1, 'past', 'Where you’d take {p} to meet the person you were at 22', 'where {a} was at 22', 'past lives', { shared: 'Where you’d go to meet the person you were at 22' }],
     FOOD,
     HOME_NOT_HOME,
     LAUGHED,
     SAW_HAPPIEST,
     FELL_AGAIN,
-    [2, 'us', 'The trip that changed us', ['What was different afterwards?', 'When did you notice?'], 'the trip that changed you', 'turning points'],
+    [2, 'us', 'The trip that changed us', 'the trip that changed you', 'turning points'],
     NEXT_ADVENTURE,
-    [3, 'dream', 'A trip that’s been waiting for the right time', ['What would make it the right time?', 'What would we need to plan first?'], 'the trip {a} has been saving', 'trips'],
+    [3, 'dream', 'A trip that’s been waiting for the right time', 'the trip {a} has been saving', 'trips'],
     SHOW_PAST,
     MONTH_A_YEAR,
   ],
   5: [ // 15+ years
-    [1, 'past', 'The childhood trip you’d relive', ['What’s one thing you remember about getting there?', 'Who sat next to you on the way?'], '{a}’s favourite childhood trip', 'trips'],
-    [1, 'past', 'Where you’d take {p} to meet the young you', ['What would that version of you think of us?', 'Where would we find you on a Saturday?'], 'where to meet the young {a}', 'past lives', { shared: 'Where you’d go to meet the young you' }],
+    [1, 'past', 'The childhood trip you’d relive', '{a}’s favourite childhood trip', 'trips'],
+    [1, 'past', 'Where you’d take {p} to meet the young you', 'where to meet the young {a}', 'past lives', { shared: 'Where you’d go to meet the young you' }],
     FOOD,
     HOME_NOT_HOME,
-    [2, 'us', 'Where we were happiest with very little', ['What do you miss about those days?', 'What did we eat back then?'], 'where you were happiest with very little', 'early days'],
+    [2, 'us', 'Where we were happiest with very little', 'where you were happiest with very little', 'early days'],
     SAW_HAPPIEST,
     FELL_AGAIN,
-    [2, 'backTo', 'A place from our early days we should go back to', ['What would we do there now?', 'Who would we look up?'], 'somewhere to go back to', 'places to go back to'],
+    [2, 'backTo', 'A place from our early days we should go back to', 'somewhere to go back to', 'places to go back to'],
     NEXT_ADVENTURE,
-    [3, 'dream', 'A place still on your list since you were young', ['Why hasn’t it happened yet?', 'Who first told you about it?'], 'on {a}’s list for years', 'old dreams'],
+    [3, 'dream', 'A place still on your list since you were young', 'on {a}’s list for years', 'old dreams'],
     SHOW_PAST,
     MONTH_A_YEAR,
+  ],
+};
+
+// Ask-your-partner prompts, Prompt 1 and Prompt 2 for each question in each tier's order,
+// exactly as in docs/question-sets-by-tenure.md (tests/bank.test.ts checks they match).
+const PROMPTS: Record<Tier, [string, string][]> = {
+  0: [ // Just met
+    ['What’s one thing every visitor gets wrong about it?', 'Where would you take me first if we went?'],
+    ['What do you do in your first hour there?', 'What does it feel like the moment you arrive?'],
+    ['What’s the story you always tell about it?', 'What would you do differently if you went again?'],
+    ['What did you expect, and what was it really like?', 'Would you go back?'],
+    ['What does the perfect day there look like?', 'What would you leave behind?'],
+    ['What made you guess that?', 'What do you imagine I was like as a kid?'],
+    ['What gave it away?', 'Which city do you think I’d pick for you?'],
+    ['What would we do there?', 'What time of day would it be?'],
+    ['When did you first want to go?', 'What’s the first thing you’d do there?'],
+    ['What would we do first?', 'What would you want me to notice?'],
+    ['What would a Tuesday there look like?', 'What would you miss from home?'],
+    ['What would you pack first?', 'How would you spend the first evening?'],
+  ],
+  1: [ // Under a year
+    ['What did a perfect day there look like?', 'Who made it so happy?'],
+    ['Which story do they tell most?', 'Which story do you tell?'],
+    ['What’s the story you always tell about it?', 'What would you do differently if you went again?'],
+    ['What do you do in your first hour there?', 'What does it feel like the moment you arrive?'],
+    ['Which moment would you go back to?', 'What would you keep exactly the same?'],
+    ['What happened that made you sure?', 'Did you tell anyone that day?'],
+    ['What did you notice that day?', 'Did you tell me at the time?'],
+    ['What would you do differently this time?', 'What’s the first thing you’d do there?'],
+    ['What’s the first thing we’d do there?', 'When should we go?'],
+    ['When did you first want to go?', 'What’s the first thing you’d do there?'],
+    ['What do you want me to see there?', 'Where would we eat?'],
+    ['What would our weekends look like?', 'What would you miss most from here?'],
+  ],
+  2: [ // 1–3 years
+    ['What did a perfect day there look like?', 'Who made it so happy?'],
+    ['What’s the story you always tell about it?', 'What would you do differently if you went again?'],
+    ['What’s the one dish?', 'Where exactly would you take me to eat it?'],
+    ['What makes it feel that way?', 'When were you last there?'],
+    ['Tell it from your side.', 'Who laughed first?'],
+    ['What did you notice that day?', 'Did you tell me at the time?'],
+    ['Do you both remember it the same way?', 'What would you order if we went back?'],
+    ['What would you do differently this time?', 'What’s the first thing you’d do there?'],
+    ['What’s the first thing we’d do there?', 'When should we go?'],
+    ['What stopped you from mentioning it?', 'What’s the first thing you’d do there?'],
+    ['What do you want me to see there?', 'Where would we eat?'],
+    ['What would our weekends look like?', 'Which neighbourhood would we pick?'],
+  ],
+  3: [ // 3–7 years
+    ['What’s the one dish?', 'Where exactly would you take me to eat it?'],
+    ['What’s your earliest memory there?', 'What would we do there together now?'],
+    ['Is there a part of that story I haven’t heard?', 'What would you do differently if you went again?'],
+    ['What would you have shown me?', 'What do you think I’d have loved most?'],
+    ['Do you remember what started it?', 'Who laughed first?'],
+    ['What did you notice that day?', 'Did you tell me at the time?'],
+    ['What did I do?', 'What did you think of me after that?'],
+    ['What would you do differently this time?', 'What’s the first thing you’d do there?'],
+    ['What would the day look like?', 'What should we do that we’ve never done?'],
+    ['What stopped you from mentioning it?', 'What’s the first thing you’d do there?'],
+    ['What do you want me to see there?', 'Where would we eat?'],
+    ['What would we do every evening?', 'What would a lazy Sunday there look like?'],
+  ],
+  4: [ // 7–15 years
+    ['What’s one thing you did there every time?', 'Who was there with you?'],
+    ['What would that version of you think of us?', 'What would you tell that version of yourself?'],
+    ['What’s the one dish?', 'Where exactly would you take me to eat it?'],
+    ['What makes it feel that way?', 'When were you last there?'],
+    ['Do you remember what started it?', 'Who laughed first?'],
+    ['What did you notice that day?', 'Did you tell me at the time?'],
+    ['What was I doing?', 'Did I know?'],
+    ['What was different afterwards?', 'What do you remember feeling on the way home?'],
+    ['What’s the first thing we’d do there?', 'When should we go?'],
+    ['What would make it the right time?', 'What if the right time is this year?'],
+    ['What do you want me to see there?', 'Where would we eat?'],
+    ['What does a morning there look like?', 'What would our routine be?'],
+  ],
+  5: [ // 15+ years
+    ['What’s one thing you remember about getting there?', 'Who was there with you?'],
+    ['What would that version of you think of us?', 'What would you tell that version of yourself?'],
+    ['What’s the one dish?', 'Where exactly would you take me to eat it?'],
+    ['What makes it feel that way?', 'When were you last there?'],
+    ['What do you miss about those days?', 'What did a perfect day cost us back then?'],
+    ['What did you notice that day?', 'Did you tell me at the time?'],
+    ['What was I doing?', 'Did I know?'],
+    ['What would we do there now?', 'What do you think has changed there?'],
+    ['What’s the first thing we’d do there?', 'When should we go?'],
+    ['Why hasn’t it happened yet?', 'What would you do first when you finally get there?'],
+    ['What do you want me to see there?', 'Where would we eat?'],
+    ['What does a morning there look like?', 'What would our routine be?'],
   ],
 };
 
 const BASE: Record<Tier, number> = { 0: 10, 1: 30, 2: 50, 3: 70, 4: 90, 5: 110 };
 
 export const BANK: BankQuestion[] = (Object.keys(SETS).map(Number) as Tier[]).flatMap(tier =>
-  SETS[tier].map(([act, kind, text, prompts, origin, noun, extra], i) => {
-    const q: BankQuestion = { id: BASE[tier] + i + 1, tier, act, kind, text, prompts, origin, noun, ...extra };
+  SETS[tier].map(([act, kind, text, origin, noun, extra], i) => {
+    const q: BankQuestion = { id: BASE[tier] + i + 1, tier, act, kind, text, prompts: PROMPTS[tier][i], origin, noun, ...extra };
     if (q.guessOf) q.guessOf = BASE[tier] + q.guessOf; // stored as the position in the set
     return q;
   }),
@@ -199,10 +288,12 @@ export const questionText = (q: BankQuestion, partner: string) => fill(q.text, '
 export const sharedText = (q: BankQuestion) => q.shared ?? q.text;
 export const originText = (q: BankQuestion, answerer: string, partner: string) => fill(q.origin, answerer, partner);
 
-/** "Ask Ravi: what's the one dish?" — the prompt for this game, rotated so a replay doesn't repeat. */
-export function promptFor(q: BankQuestion, gameId: string, ask: string): string {
-  const seed = parseInt(gameId.slice(0, 6), 16) || 0;
-  const p = q.prompts[(seed + q.id) % q.prompts.length];
+/**
+ * "Ask Ravi: what's the one dish?" Prompt 1 on a couple's first game, Prompt 2 on a replay
+ * (round 2), then alternating, so a second play feels fresh.
+ */
+export function promptFor(q: BankQuestion, round: number, ask: string): string {
+  const p = q.prompts[(Math.max(1, round) - 1) % 2];
   const lower = /^I\b/.test(p) ? p : p.charAt(0).toLowerCase() + p.slice(1);
   return `Ask ${ask}: ${lower}`;
 }

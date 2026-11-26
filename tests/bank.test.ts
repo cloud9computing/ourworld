@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'fs';
 import { ACT_LINES, ACT_NAMES, BANK, byId, originText, promptFor, setFor, type Tier } from '../src/data/bank';
 
 const TIERS: Tier[] = [0, 1, 2, 3, 4, 5];
@@ -43,11 +44,25 @@ describe('question sets (question-sets-by-tenure.md)', () => {
     for (const q of BANK) for (const t of [q.text, q.shared ?? '', ...q.prompts, q.origin]) expect(t).not.toMatch(banned);
   });
 
-  it('writes prompts as "Ask <name>: …" and rotates them between games', () => {
+  it('uses exactly the two prompts in docs/question-sets-by-tenure.md, in order', () => {
+    const md = readFileSync('docs/question-sets-by-tenure.md', 'utf8');
+    const names = ['Just met', 'Under a year', '1–3 years', '3–7 years', '7–15 years', '15+ years'];
+    TIERS.forEach(tier => {
+      const section = md.split(`\n## ${names[tier]}\n`)[1].split('\n## ')[0];
+      const rows = section.split('\n').filter(l => /^\| \d+ \|/.test(l)).map(l => l.split('|').map(c => c.trim()));
+      expect(rows).toHaveLength(12);
+      setFor(tier).forEach((id, i) => {
+        const [, , , , p1, p2] = rows[i];
+        expect(byId.get(id)!.prompts.map(p => p.replace(/’/g, "'")), `${names[tier]} #${i + 1}`).toEqual([p1, p2]);
+      });
+    });
+  });
+
+  it('shows Prompt 1 on the first game and Prompt 2 on a replay, as "Ask <name>: …"', () => {
     const q = byId.get(setFor(2)[2])!; // the food one
-    const seen = new Set(['000000', '000001', '000002'].map(g => promptFor(q, g + '0000000000', 'Ravi')));
-    expect([...seen][0]).toMatch(/^Ask Ravi: [a-z]/);
-    expect(seen.size).toBeGreaterThan(1);
+    expect(promptFor(q, 1, 'Ravi')).toBe('Ask Ravi: what’s the one dish?');
+    expect(promptFor(q, 2, 'Ravi')).toBe('Ask Ravi: where exactly would you take me to eat it?');
+    expect(promptFor(q, 3, 'Ravi')).toBe('Ask Ravi: what’s the one dish?');
   });
 
   it('fills origins with the right names', () => {
