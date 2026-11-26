@@ -86,6 +86,8 @@ form { display: grid; gap: 18px; }
 @keyframes loopB { 0%, 12% { transform: translateX(26%) scale(.62); opacity: 1; } 40% { transform: none; opacity: .9; } 55%, 92% { transform: none; opacity: 0; } 100% { transform: translateX(26%) scale(.62); opacity: 0; } }
 @keyframes loopOurs { 0%, 38% { opacity: 0; } 55%, 88% { opacity: 1; } 100% { opacity: 0; } }
 .landing { justify-content: center; gap: 14px; }
+.landing-title { font-size: clamp(38px, 10.4vw, 58px); line-height: 1.02; text-wrap: balance; }
+.landing .loop { width: min(84vw, 340px); margin: 18px 0; }
 
 .join .rules { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 16px; }
 .rules li { display: grid; grid-template-columns: 30px 1fr; gap: 12px; }

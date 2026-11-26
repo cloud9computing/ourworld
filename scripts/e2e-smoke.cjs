@@ -53,6 +53,10 @@ async function answerAll(page, cities, shots) {
   await ravi.locator('.loop svg').first().waitFor();
   await ravi.waitForTimeout(1500);
   await shot(ravi, '01-landing.png');
+  // v5: the landing headline wraps to no more than two lines at 390 px
+  const lines = await ravi.evaluate(() => { const h = document.querySelector('h1'); return Math.round(h.getBoundingClientRect().height / parseFloat(getComputedStyle(h).lineHeight)); });
+  if (lines > 2) throw new Error(`landing headline wraps to ${lines} lines at 390 px`);
+  console.log('landing headline lines at 390 px:', lines);
   await ravi.getByRole('button', { name: 'Find out together' }).click();
   await ravi.getByLabel('Your name').fill('Ravi');
   await ravi.getByLabel('Your partner').fill('Tara');
