@@ -1,66 +1,83 @@
-// "Our world": two people's places on one circular map, centred between their homes.
-import { azimuthalProjection, distanceKm, midpoint, sphericalMean, type LatLon, type Projection } from './geo';
-import { buildShape, mergeNearby, smoothSegments, MERGE_KM, type Dot, type Place, type Shape } from './polygon';
+// "Mine + yours = ours": each partner's places, and the bigger world they make together,
+// on the north-polar map (PRD v2, section 8).
+import { distanceKm, polarProjection, type Projection, type XY } from './geo';
+import { boundingCentre, buildShape, mergeNearby, smoothSegments, type Dot, type Place, type Shape } from './polygon';
 
-export type PersonWorld = { name: string; home?: Place; places: Place[]; dreams: Place[] };
+export const ROTATION = -43;
 
-/** Places this close to the centre stay as dots but don't become corners of the loop (avoids spikes into the middle). */
-export const NEAR_CENTRE_KM = 800;
-/** Even a very compact world shows at least this much of the map around its centre. */
-export const MIN_REACH_KM = 1500;
-const KM_PER_UNIT = (Math.PI / 2) * 6371;
+export type PersonPlaces = { name: string; visited: Place[]; dreams: Place[] };
+export type Who = 'a' | 'b' | 'both';
+export type TaggedDot = Dot & { who: Who };
+export type DreamDot = TaggedDot & { from?: TaggedDot };
+
+/** Chart units shown inside the frame: (ox, oy) sits at the frame centre and `reach` at its edge. */
+export type View = { ox: number; oy: number; reach: number };
 
 export type WorldModel = {
-  centre: LatLon;
   project: Projection;
-  homes: Place[];
-  dots: (Dot & { who: 'a' | 'b' | 'both' })[];
-  dreams: (Dot & { who: 'a' | 'b' | 'both' })[];
-  ours: Shape;
+  dots: TaggedDot[];
+  dreams: DreamDot[];
   shapeA: Shape;
   shapeB: Shape;
-  minReach: number;
-  counts: { places: number; countries: number };
+  ours: Shape;
+  view: View;
+  counts: { places: number; countries: number; continents: number; dreams: number; a: number; b: number };
 };
 
-export function centreOf(a: PersonWorld, b?: PersonWorld): LatLon {
-  const ha = a.home, hb = b?.home;
-  if (ha && hb) return distanceKm(ha, hb) <= MERGE_KM ? ha : midpoint(ha, hb);
-  if (ha) return ha;
-  if (hb) return hb;
-  const all = [...a.places, ...(b?.places ?? [])];
-  return all.length ? sphericalMean(all) : { lat: 20, lon: 0 };
-}
+/** Fraction of the frame radius kept clear around the farthest point (70 px on a 400 px chart). */
+export const MARGIN = 0.175;
+/** Very compact sets are not blown up beyond this much of the map (chart units; 1 = 90 degrees). */
+export const MIN_REACH = 0.1;
 
-function tag(dots: Dot[], aIds: Set<number>, bIds: Set<number>) {
+function tag(dots: Dot[], aIds: Set<number>, bIds: Set<number>): TaggedDot[] {
   return dots.map(d => {
     const inA = d.members.some(m => aIds.has(m.id)), inB = d.members.some(m => bIds.has(m.id));
-    return { ...d, who: inA && inB ? 'both' as const : inA ? 'a' as const : 'b' as const };
+    return { ...d, who: inA && inB ? 'both' : inA ? 'a' : 'b' };
   });
 }
 
-export function buildWorld(a: PersonWorld, b?: PersonWorld): WorldModel {
-  const centre = centreOf(a, b);
-  const project = azimuthalProjection(centre);
-  const homes = [a.home, b?.home].filter((h): h is Place => !!h);
-  const homeIds = new Set(homes.map(h => h.id));
+/** Fit to the places (and their arcs); dreams may use the margin and zoom out a little, but don't set the zoom on their own. */
+export function fitView(points: XY[], extras: XY[] = [], margin = MARGIN, minReach = MIN_REACH): View {
+  if (!points.length && !extras.length) return { ox: 0, oy: 0, reach: 1 };
+  const c = boundingCentre(points.length ? points : extras);
+  const far = Math.max(minReach, ...points.map(p => Math.hypot(p.x - c.x, p.y - c.y)));
+  const farExtra = Math.max(0, ...extras.map(p => Math.hypot(p.x - c.x, p.y - c.y)));
+  // a far-away dream may zoom the map out by up to 30%; beyond that its dotted line runs off the edge
+  const base = far / (1 - margin);
+  return { ox: c.x, oy: c.y, reach: Math.max(base, Math.min(farExtra / 0.96, base * 1.3)) };
+}
 
-  const visitedA = a.places.filter(p => !homeIds.has(p.id));
-  const visitedB = (b?.places ?? []).filter(p => !homeIds.has(p.id));
-  const dots = tag(mergeNearby([...visitedA, ...visitedB]), new Set(visitedA.map(p => p.id)), new Set(visitedB.map(p => p.id)))
-    .filter(d => !homes.some(h => distanceKm(h, d) <= MERGE_KM));
-  const dreams = tag(mergeNearby([...a.dreams, ...(b?.dreams ?? [])]), new Set(a.dreams.map(p => p.id)), new Set((b?.dreams ?? []).map(p => p.id)));
+export function buildWorld(a: PersonPlaces, b?: PersonPlaces, continentOf: (cc: string) => string = () => ''): WorldModel {
+  const project = polarProjection(ROTATION);
+  const va = a.visited, vb = b?.visited ?? [];
+  const dots = tag(mergeNearby([...va, ...vb]), new Set(va.map(p => p.id)), new Set(vb.map(p => p.id)));
+  const da = a.dreams, db = b?.dreams ?? [];
+  const dreams: DreamDot[] = tag(mergeNearby([...da, ...db]), new Set(da.map(p => p.id)), new Set(db.map(p => p.id)))
+    // a dream someone has already been to (as a visit) stays a place, not a dream line
+    .filter(d => !dots.some(v => distanceKm(v, d) <= 50))
+    .map(d => {
+      const own = dots.filter(v => d.who === 'both' || v.who === d.who || v.who === 'both');
+      const pool = own.length ? own : dots;
+      const from = pool.reduce<TaggedDot | undefined>((best, v) => (!best || distanceKm(v, d) < distanceKm(best, d) ? v : best), undefined);
+      return { ...d, from };
+    });
 
-  const corners = (ds: Dot[]) => ds.filter(d => distanceKm(centre, d) > NEAR_CENTRE_KM);
-  const ours = buildShape(corners(dots), project, smoothSegments);
-  const shapeA = buildShape(corners(dots.filter(d => d.who !== 'b')), project, smoothSegments);
-  const shapeB = buildShape(corners(dots.filter(d => d.who !== 'a')), project, smoothSegments);
+  const mine = (who: 'a' | 'b') => dots.filter(d => d.who === who || d.who === 'both');
+  const shapeA = buildShape(mine('a'), project, smoothSegments);
+  const shapeB = b ? buildShape(mine('b'), project, smoothSegments) : { kind: 'empty' as const };
+  const ours = buildShape(dots, project, smoothSegments);
 
-  const allPlaces = mergeNearby([...homes, ...visitedA, ...visitedB]);
-  const countries = new Set(allPlaces.map(p => p.cc));
+  const pts = dots.map(project);
+  if (ours.kind === 'loop' || ours.kind === 'line') pts.push(...ours.path);
   return {
-    centre, project, homes, dots, dreams, ours, shapeA, shapeB,
-    minReach: MIN_REACH_KM / KM_PER_UNIT,
-    counts: { places: allPlaces.length, countries: countries.size },
+    project, dots, dreams, shapeA, shapeB, ours, view: fitView(pts, dreams.map(project)),
+    counts: {
+      places: dots.length,
+      countries: new Set(dots.map(d => d.cc)).size,
+      continents: new Set(dots.map(d => continentOf(d.cc)).filter(Boolean)).size,
+      dreams: dreams.length,
+      a: mine('a').length,
+      b: mine('b').length,
+    },
   };
 }

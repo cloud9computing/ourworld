@@ -1,10 +1,10 @@
 # Our World
 
-A game for two. Each person answers 12 quick questions about places in their life on their own phone, seals their answers, then the two phones swap answers by scanning each other's QR code. Both phones then show the reveal (same places, same corners of the world, different places) and draw the shape of their world together as a shareable poster.
+A date for two phones. One partner starts a game and brings the other in by QR code. Each answers 12 questions about places in their lives in three acts (before us, us, next), seals their answers, and the phones swap by scanning each other's code. Then a reveal, one question at a time, and a poster: each partner's world in silver, plus the bigger world they make together in pink. "Mine + yours = ours."
 
-There is no backend. Answers stay on each phone, and the QR code carries them after the `#` in a link, which browsers never send to a server.
+There is no backend. Answers stay on each phone, and the codes carry them after the `#` in a link, which browsers never send to a server.
 
-Plans and background: `docs/PRD.md` (original PRD), `docs/IMPLEMENTATION_PLAN.md`.
+Requirements: `docs/PRD-v2.md` (current), with mocks in `docs/mocks/` and boards in `docs/boards/`. `docs/GAP_LIST_v2.md` records what v2 changed. `docs/PRD.md` is the original PRD.
 
 ## Run it
 
@@ -43,12 +43,12 @@ The repository is connected to Cloudflare Workers & Pages (project `ourworld`), 
 
 | Path | What |
 |---|---|
-| `src/data/questions.ts` | The questions. Edit wording freely; keep ids stable and only append new ones (they're in the QR payload) |
+| `src/data/bank.ts` | The question bank: acts, tiers, starred and about-partner questions. Ids are stable (they travel in the invite) |
 | `src/data/copy.ts` | All reveal and poster copy (tested: no scoring, no "wrong", no exclamation marks) |
-| `src/lib/shape/` | Projection, merging, the loop, fitting (`geo.ts`, `polygon.ts`, `world.ts`) and the poster SVG (`poster.ts`) |
-| `src/lib/swap/` | QR payload format (`codec.ts`) and the camera scanner |
-| `src/lib/places/` | City search, aliases (Seville → Sevilla, Bali → Denpasar), paste parsing |
-| `src/lib/reveal/` | Same place / same region / different |
-| `src/screens/` | The flow: Home → Name → Questions → Also been → Review → Seal and swap → Reveal → Poster |
-
-The poster look in `src/lib/shape/poster.ts` (`THEME` and the layout in `posterSvg`) is interim and is expected to be replaced by a design pass.
+| `src/lib/game/select.ts` | Picks 3 + 6 + 3 questions for a game, seeded by the game id and shaped by the tier |
+| `src/lib/swap/codec.ts` | The invite code (`#j=`) and the answer code (`#a=`), with checksums |
+| `src/state/game.ts` | The game kept on each phone, and the sealing rule (partner answers only after your own seal, same game, other role) |
+| `src/lib/shape/` | North-polar projection, merging, the loop (`geo.ts`, `polygon.ts`, `world.ts`), chart drawing (`chart.ts`) and the poster (`poster.ts`) |
+| `src/lib/reveal/` | Same place, same region, different (`reveal.ts`) and the connecting facts (`facts.ts`) |
+| `src/lib/places/` | City search, aliases, paste parsing, time zones, continents |
+| `src/screens/` | Landing → Set-up → Invite / Join → Questions and chapter cards → Lists → Review → Sealed and scan → Reveal → Final → Poster |
