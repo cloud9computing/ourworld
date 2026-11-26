@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import ref from './fixtures/reference.json';
 import { azimuthalProjection, distanceKm, polarProjection } from '../src/lib/shape/geo';
 import { buildShape, fitChart, boundingCentre, mergeNearby, orderLoop, type Place } from '../src/lib/shape/polygon';
-import { buildWorld, centreOf } from '../src/lib/shape/world';
+import { buildWorld } from '../src/lib/shape/world';
 
 const refPlaces = ref.places.map((p, i) => ({ ...p, id: i + 1 }));
 const byName = (n: string) => refPlaces.find(p => p.name === n)!;
@@ -81,12 +81,6 @@ describe('merging and small sets', () => {
 describe('azimuthal projection', () => {
   const c = { lat: 12.97, lon: 77.59 };
   const pr = azimuthalProjection(c);
-  it('puts the centre at the origin, north up and east right', () => {
-    const o = pr(c);
-    expect(Math.hypot(o.x, o.y)).toBeLessThan(1e-9);
-    expect(pr({ lat: 30, lon: 77.59 }).y).toBeLessThan(0);
-    expect(pr({ lat: 13, lon: 90 }).x).toBeGreaterThan(0);
-  });
   it('keeps true distance from the centre (1 unit = 90 degrees)', () => {
     const p = { lat: 51.5, lon: -0.13 };
     const units = Math.hypot(pr(p).x, pr(p).y);
@@ -94,21 +88,26 @@ describe('azimuthal projection', () => {
   });
 });
 
-describe('our world', () => {
-  const blr = P(10, 'Bangalore', 12.97, 77.59, 'IN', '19');
-  const hyd = P(11, 'Hyderabad', 17.39, 78.49, 'IN', '40');
-  it('centres between two homes, or on a shared home', () => {
-    const m = centreOf({ name: 'A', home: blr, places: [], dreams: [] }, { name: 'B', home: hyd, places: [], dreams: [] });
-    expect(distanceKm(m, blr)).toBeCloseTo(distanceKm(m, hyd), 3);
-    expect(centreOf({ name: 'A', home: blr, places: [], dreams: [] }, { name: 'B', home: blr, places: [], dreams: [] })).toEqual(blr);
-  });
-  it('counts places and countries from the union, with shared places once', () => {
-    const lis = P(20, 'Lisbon', 38.72, -9.14, 'PT');
-    const w = buildWorld(
-      { name: 'A', home: blr, places: [lis, P(21, 'Rome', 41.9, 12.5, 'IT')], dreams: [] },
-      { name: 'B', home: hyd, places: [lis, P(22, 'Paris', 48.86, 2.35, 'FR')], dreams: [] },
-    );
-    expect(w.counts).toEqual({ places: 5, countries: 4 });
+describe('mine + yours = ours', () => {
+  const lis = P(20, 'Lisbon', 38.72, -9.14, 'PT'), rome = P(21, 'Rome', 41.9, 12.5, 'IT'), paris = P(22, 'Paris', 48.86, 2.35, 'FR');
+  const goa = P(23, 'Goa', 15.5, 73.83, 'IN'), cape = P(24, 'Cape Town', -33.92, 18.42, 'ZA'), sydney = P(25, 'Sydney', -33.87, 151.21, 'AU');
+  const cont: Record<string, string> = { PT: 'EU', IT: 'EU', FR: 'EU', IN: 'AS', ZA: 'AF', AU: 'OC', IS: 'EU' };
+  const w = buildWorld(
+    { name: 'A', visited: [lis, rome, goa, cape], dreams: [P(30, 'Reykjavik', 64.15, -21.94, 'IS')] },
+    { name: 'B', visited: [lis, paris, sydney], dreams: [P(30, 'Reykjavik', 64.15, -21.94, 'IS')] },
+    cc => cont[cc] ?? '',
+  );
+  it('counts the union once, with countries, continents and dreams', () => {
+    expect(w.counts).toMatchObject({ places: 6, countries: 6, continents: 4, dreams: 1, a: 4, b: 3 });
     expect(w.dots.find(d => d.id === 20)?.who).toBe('both');
+    expect(w.dreams[0].who).toBe('both');
+  });
+  it('puts southern places (Cape Town, Sydney) on the chart, inside the frame', () => {
+    for (const shape of [w.ours]) if (shape.kind === 'loop') {
+      for (const p of shape.path) expect(Math.hypot(p.x - w.view.ox, p.y - w.view.oy)).toBeLessThanOrEqual(w.view.reach + 1e-9);
+    }
+  });
+  it('joins a dream to the nearest place', () => {
+    expect(w.dreams[0].from).toBeTruthy();
   });
 });

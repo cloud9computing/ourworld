@@ -1,18 +1,23 @@
-// The QR payload: one person's sealed answers, packed into a few hundred bytes.
-// Layout (format 1):
-//   u8 format | 4 bytes index version | 8 bytes device id | u8 name length + UTF-8 name
-//   ceil(n/4) bytes of 2-bit statuses for the n single questions (0 none, 1 answered, 2 skipped, 3 can't remember)
-//   varint place id for each answered question, in SINGLE_IDS order
-//   varint count + varint ids for the "other places" list
-//   4 bytes CRC-32 of everything before it
-import { SINGLE_IDS, OTHERS_MAX, type QuestionId } from '../../data/questions';
-import type { Answer, PartnerData, Status } from '../../state/session';
+// The two QR codes, packed small and carried after "#" in a link so no server ever sees them.
+//
+// Invite (#j=):  u8 format | u8 'J' | 8 bytes game id | u8 tier | name, partner name (u8 length + UTF-8)
+//                | u8 count + u8 question ids | 4 bytes city index version | CRC-32
+// Answers (#a=): u8 format | u8 'A' | 8 bytes game id | u8 role (0 started the game, 1 joined)
+//                | u8 count | 2-bit statuses (0 none, 1 answered, 2 skipped) | varint city ids for answered
+//                | two lists (varint count + varint ids): places together, cities lived in | CRC-32
+import { LIST_MAX } from '../../data/bank';
+import type { Tier } from '../../data/bank';
 
-export const FORMAT = 1;
-const MAX_NAME_BYTES = 48;
-const STATUS: (Status | undefined)[] = [undefined, 'answered', 'skipped', 'cant_remember'];
+export const FORMAT = 2;
+const MAX_NAME_BYTES = 40;
 
-export type Payload = PartnerData & { indexVersion: string };
+export type Status = 'answered' | 'skipped';
+export type Answer = { status: Status; place?: number };
+
+export type Invite = { gameId: string; tier: Tier; from: string; to: string; questions: number[]; indexVersion: string };
+export type Answers = { gameId: string; role: 0 | 1; answers: Answer[]; together: number[]; lived: number[] };
+
+export class CodeError extends Error {}
 
 function crc32(bytes: Uint8Array): number {
   let c = ~0;
@@ -25,82 +30,112 @@ class Writer {
   u8(n: number) { this.buf.push(n & 255); }
   bytes(b: ArrayLike<number>) { for (let i = 0; i < b.length; i++) this.u8(b[i]); }
   varint(n: number) {
-    if (!Number.isInteger(n) || n < 0 || n > 2 ** 32) throw new Error('bad id');
+    if (!Number.isInteger(n) || n < 0 || n > 2 ** 32) throw new CodeError('bad number');
     while (n >= 128) { this.u8((n % 128) | 128); n = Math.floor(n / 128); }
     this.u8(n);
+  }
+  name(s: string) {
+    let b = new TextEncoder().encode(s.trim());
+    if (b.length > MAX_NAME_BYTES) b = b.slice(0, MAX_NAME_BYTES);
+    this.u8(b.length); this.bytes(b);
+  }
+  hex(h: string, n: number) { this.bytes(Uint8Array.from((h.padEnd(n * 2, '0').slice(0, n * 2).match(/../g) ?? []), x => parseInt(x, 16))); }
+  done(): Uint8Array {
+    const body = Uint8Array.from(this.buf), out = new Uint8Array(body.length + 4);
+    out.set(body);
+    new DataView(out.buffer).setUint32(body.length, crc32(body));
+    return out;
   }
 }
 
 class Reader {
   i = 0;
   constructor(private b: Uint8Array) {}
-  u8() { if (this.i >= this.b.length) throw new Error('short'); return this.b[this.i++]; }
-  bytes(n: number) { if (this.i + n > this.b.length) throw new Error('short'); const s = this.b.slice(this.i, this.i + n); this.i += n; return s; }
+  u8() { if (this.i >= this.b.length) throw new CodeError('short'); return this.b[this.i++]; }
+  bytes(n: number) { if (this.i + n > this.b.length) throw new CodeError('short'); const s = this.b.slice(this.i, this.i + n); this.i += n; return s; }
   varint() {
     let n = 0, mul = 1;
     for (let k = 0; k < 5; k++) { const x = this.u8(); n += (x & 127) * mul; if (x < 128) return n; mul *= 128; }
-    throw new Error('varint too long');
+    throw new CodeError('varint too long');
   }
+  name() {
+    const len = this.u8();
+    if (len > MAX_NAME_BYTES) throw new CodeError('bad name');
+    return new TextDecoder().decode(this.bytes(len)).replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 20);
+  }
+  hex(n: number) { return Array.from(this.bytes(n), x => x.toString(16).padStart(2, '0')).join(''); }
+  list(max: number) {
+    const n = this.varint();
+    if (n > max) throw new CodeError('too many places');
+    return Array.from({ length: n }, () => this.varint());
+  }
+  end() { if (this.i !== this.b.length) throw new CodeError('trailing data'); }
 }
 
-const hexToBytes = (h: string) => Uint8Array.from(h.match(/../g) ?? [], x => parseInt(x, 16));
-const bytesToHex = (b: Uint8Array) => Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
-
-export function encode(p: Payload): Uint8Array {
-  const w = new Writer();
-  w.u8(FORMAT);
-  const iv = hexToBytes(p.indexVersion.padEnd(8, '0').slice(0, 8));
-  const id = hexToBytes(p.deviceId.padEnd(16, '0').slice(0, 16));
-  w.bytes(iv); w.bytes(id);
-  let name = new TextEncoder().encode(p.firstName.trim());
-  if (name.length > MAX_NAME_BYTES) name = name.slice(0, MAX_NAME_BYTES);
-  w.u8(name.length); w.bytes(name);
-  const statusBytes = new Uint8Array(Math.ceil(SINGLE_IDS.length / 4));
-  SINGLE_IDS.forEach((q, i) => {
-    const s = p.answers[q]?.status;
-    let code = s ? STATUS.indexOf(s) : 0;
-    if (code === 1 && !p.answers[q]?.place) code = 0;
-    statusBytes[i >> 2] |= code << ((i & 3) * 2);
-  });
-  w.bytes(statusBytes);
-  for (const q of SINGLE_IDS) { const a = p.answers[q]; if (a?.status === 'answered' && a.place) w.varint(a.place); }
-  const others = p.others.slice(0, OTHERS_MAX);
-  w.varint(others.length);
-  for (const o of others) w.varint(o);
-  const body = Uint8Array.from(w.buf);
-  const crc = crc32(body);
-  const out = new Uint8Array(body.length + 4);
-  out.set(body);
-  new DataView(out.buffer).setUint32(body.length, crc);
-  return out;
-}
-
-export function decode(bytes: Uint8Array): Payload {
-  if (bytes.length < 20 || bytes.length > 2000) throw new Error('This code isn’t one of ours.');
+function open(bytes: Uint8Array, kind: 'J' | 'A'): Reader {
+  if (bytes.length < 12 || bytes.length > 2000) throw new CodeError('This code isn’t one of ours.');
   const body = bytes.slice(0, bytes.length - 4);
   const crc = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(bytes.length - 4);
-  if (crc32(body) !== crc) throw new Error('This code didn’t scan cleanly. Try again.');
+  if (crc32(body) !== crc) throw new CodeError('This code didn’t scan cleanly. Try again.');
   const r = new Reader(body);
-  if (r.u8() !== FORMAT) throw new Error('This code comes from a different version. Refresh both phones.');
-  const indexVersion = bytesToHex(r.bytes(4));
-  const deviceId = bytesToHex(r.bytes(8));
-  const nameLen = r.u8();
-  if (nameLen > MAX_NAME_BYTES) throw new Error('bad name');
-  const firstName = new TextDecoder('utf-8', { fatal: false }).decode(r.bytes(nameLen)).replace(/[\u0000-\u001f\u007f]/g, '').trim();
-  const statusBytes = r.bytes(Math.ceil(SINGLE_IDS.length / 4));
-  const answers: Partial<Record<QuestionId, Answer>> = {};
-  const codes = SINGLE_IDS.map((_, i) => (statusBytes[i >> 2] >> ((i & 3) * 2)) & 3);
-  SINGLE_IDS.forEach((q, i) => {
-    const s = STATUS[codes[i]];
-    if (!s) return;
-    answers[q] = s === 'answered' ? { status: s, place: r.varint() } : { status: s };
+  if (r.u8() !== FORMAT) throw new CodeError('This code comes from an older version. Refresh both phones and start again.');
+  const k = String.fromCharCode(r.u8());
+  if (k !== kind) throw new CodeError(kind === 'A' ? 'That’s an invite code. Scan the code on the sealed screen instead.' : 'That’s an answer code, not an invite.');
+  return r;
+}
+
+export function encodeInvite(v: Invite): Uint8Array {
+  const w = new Writer();
+  w.u8(FORMAT); w.u8('J'.charCodeAt(0)); w.hex(v.gameId, 8); w.u8(v.tier); w.name(v.from); w.name(v.to);
+  w.u8(v.questions.length); for (const q of v.questions) w.u8(q);
+  w.hex(v.indexVersion, 4);
+  return w.done();
+}
+
+export function decodeInvite(bytes: Uint8Array): Invite {
+  const r = open(bytes, 'J');
+  const gameId = r.hex(8), tier = r.u8();
+  if (tier > 4) throw new CodeError('bad tier');
+  const from = r.name(), to = r.name();
+  const n = r.u8();
+  if (n < 1 || n > 20) throw new CodeError('bad questions');
+  const questions = Array.from({ length: n }, () => r.u8());
+  const indexVersion = r.hex(4);
+  r.end();
+  return { gameId, tier: tier as Tier, from, to, questions, indexVersion };
+}
+
+export function encodeAnswers(v: Answers): Uint8Array {
+  const w = new Writer();
+  w.u8(FORMAT); w.u8('A'.charCodeAt(0)); w.hex(v.gameId, 8); w.u8(v.role);
+  w.u8(v.answers.length);
+  const st = new Uint8Array(Math.ceil(v.answers.length / 4));
+  v.answers.forEach((a, i) => {
+    const code = a.status === 'answered' && a.place ? 1 : a.status === 'skipped' ? 2 : 0;
+    st[i >> 2] |= code << ((i & 3) * 2);
   });
-  const n = r.varint();
-  if (n > OTHERS_MAX) throw new Error('too many places');
-  const others: number[] = [];
-  for (let k = 0; k < n; k++) others.push(r.varint());
-  if (r.i !== body.length) throw new Error('trailing data');
-  return { indexVersion, deviceId, firstName, answers, others };
+  w.bytes(st);
+  for (const a of v.answers) if (a.status === 'answered' && a.place) w.varint(a.place);
+  for (const list of [v.together, v.lived]) { const l = list.slice(0, LIST_MAX); w.varint(l.length); l.forEach(x => w.varint(x)); }
+  return w.done();
+}
+
+export function decodeAnswers(bytes: Uint8Array): Answers {
+  const r = open(bytes, 'A');
+  const gameId = r.hex(8), role = r.u8();
+  if (role > 1) throw new CodeError('bad role');
+  const n = r.u8();
+  if (n > 20) throw new CodeError('bad answers');
+  const st = r.bytes(Math.ceil(n / 4));
+  const answers: Answer[] = [];
+  for (let i = 0; i < n; i++) {
+    const code = (st[i >> 2] >> ((i & 3) * 2)) & 3;
+    answers.push(code === 1 ? { status: 'answered', place: 0 } : { status: 'skipped' });
+  }
+  for (const a of answers) if (a.status === 'answered') a.place = r.varint();
+  const together = r.list(LIST_MAX), lived = r.list(LIST_MAX);
+  r.end();
+  return { gameId, role: role as 0 | 1, answers, together, lived };
 }
 
 export function toBase64Url(b: Uint8Array): string {
@@ -110,18 +145,18 @@ export function toBase64Url(b: Uint8Array): string {
 }
 
 export function fromBase64Url(s: string): Uint8Array {
-  if (!/^[A-Za-z0-9_-]{1,3000}$/.test(s)) throw new Error('This code isn’t one of ours.');
+  if (!/^[A-Za-z0-9_-]{1,3000}$/.test(s)) throw new CodeError('This code isn’t one of ours.');
   const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
   return Uint8Array.from(bin, c => c.charCodeAt(0));
 }
 
-/** The text inside the QR code: a link to the app with the answers after the "#", which browsers never send to a server. */
-export function toLink(origin: string, p: Payload): string {
-  return `${origin}/#s=${toBase64Url(encode(p))}`;
-}
+export const inviteLink = (origin: string, v: Invite) => `${origin}/#j=${toBase64Url(encodeInvite(v))}`;
+export const answersLink = (origin: string, v: Answers) => `${origin}/#a=${toBase64Url(encodeAnswers(v))}`;
 
-export function fromLink(text: string): Payload {
-  const m = text.match(/#s=([A-Za-z0-9_-]+)$/);
-  if (!m) throw new Error('This code isn’t one of ours.');
-  return decode(fromBase64Url(m[1]));
+/** Reads a scanned or pasted link. */
+export function readLink(text: string): { kind: 'invite'; invite: Invite } | { kind: 'answers'; answers: Answers } {
+  const m = text.trim().match(/#([ja])=([A-Za-z0-9_-]+)\s*$/);
+  if (!m) throw new CodeError('This code isn’t one of ours.');
+  const bytes = fromBase64Url(m[2]);
+  return m[1] === 'j' ? { kind: 'invite', invite: decodeInvite(bytes) } : { kind: 'answers', answers: decodeAnswers(bytes) };
 }

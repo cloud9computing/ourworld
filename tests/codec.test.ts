@@ -1,45 +1,45 @@
 import { describe, expect, it } from 'vitest';
-import { decode, encode, fromLink, toLink, type Payload } from '../src/lib/swap/codec';
-import { SINGLE_IDS } from '../src/data/questions';
+import { decodeAnswers, decodeInvite, encodeAnswers, encodeInvite, answersLink, inviteLink, readLink, type Answers, type Invite } from '../src/lib/swap/codec';
 
-const sample: Payload = {
-  indexVersion: '9eecdd9d', deviceId: '0123456789abcdef', firstName: 'Tara',
-  answers: { home: { status: 'answered', place: 1269843 }, grewup: { status: 'skipped' }, meal: { status: 'answered', place: 2267057 }, dream: { status: 'cant_remember' } },
-  others: [2643743, 2988507, 3117735],
+const invite: Invite = { gameId: '0123456789abcdef', tier: 2, from: 'Ravi', to: 'Tara', questions: [1, 3, 4, 11, 12, 13, 14, 15, 16, 31, 32, 34], indexVersion: 'abcc0607' };
+const answers: Answers = {
+  gameId: '0123456789abcdef', role: 1,
+  answers: Array.from({ length: 12 }, (_, i) => (i % 4 === 3 ? { status: 'skipped' as const } : { status: 'answered' as const, place: 1_000_000 + i * 12345 })),
+  together: [2643743, 2988507], lived: [1277333],
 };
 
-describe('QR payload', () => {
+describe('invite code', () => {
+  it('round-trips through a link', () => {
+    expect(decodeInvite(encodeInvite(invite))).toEqual(invite);
+    const r = readLink(inviteLink('https://ourworld.example', invite));
+    expect(r).toEqual({ kind: 'invite', invite });
+  });
+  it('keeps accented names', () => {
+    expect(decodeInvite(encodeInvite({ ...invite, from: 'Zoë', to: 'Ñuno' })).from).toBe('Zoë');
+  });
+});
+
+describe('answer code', () => {
   it('round-trips', () => {
-    expect(decode(encode(sample))).toEqual(sample);
-    expect(fromLink(toLink('https://example.app', sample))).toEqual(sample);
+    expect(decodeAnswers(encodeAnswers(answers))).toEqual(answers);
+    expect(readLink(answersLink('https://x', answers))).toEqual({ kind: 'answers', answers });
   });
-
-  it('keeps names with accents and emoji', () => {
-    const p = { ...sample, firstName: 'Zoë 🌍' };
-    expect(decode(encode(p)).firstName).toBe('Zoë 🌍');
-  });
-
-  it('stays small enough for a screen-to-screen QR code at the caps', () => {
-    const answers = Object.fromEntries(SINGLE_IDS.map(q => [q, { status: 'answered' as const, place: 12_000_000 }]));
-    const big = { ...sample, firstName: 'Maximiliana', answers, others: Array.from({ length: 60 }, () => 12_000_000) };
-    const link = toLink('https://our-world.pages.dev', big);
+  it('fits one scannable QR code at the caps (20 places per list)', () => {
+    const big = { ...answers, answers: answers.answers.map(() => ({ status: 'answered' as const, place: 12_000_000 })), together: Array(20).fill(12_000_000), lived: Array(20).fill(12_000_000) };
     // QR version 20 at error correction M holds 666 bytes
-    expect(link.length).toBeLessThan(666);
+    expect(answersLink('https://ourworld.cloud9trt.workers.dev', big).length).toBeLessThan(666);
   });
-
-  it('rejects damaged or foreign codes', () => {
-    const bytes = encode(sample);
-    const bad = bytes.slice(); bad[10] ^= 1;
-    expect(() => decode(bad)).toThrow();
-    expect(() => fromLink('https://example.com/hello')).toThrow();
-    expect(() => decode(new Uint8Array(30))).toThrow();
+  it('rejects damaged, foreign or mixed-up codes', () => {
+    const bytes = encodeAnswers(answers); bytes[5] ^= 1;
+    expect(() => decodeAnswers(bytes)).toThrow();
+    expect(() => readLink('https://example.com/hello')).toThrow();
+    expect(() => decodeAnswers(encodeInvite(invite))).toThrow(/invite/);
   });
-
   it('never throws anything but an Error on random input', () => {
     for (let i = 0; i < 2000; i++) {
-      const b = new Uint8Array(20 + (i % 200));
+      const b = new Uint8Array(12 + (i % 200));
       for (let k = 0; k < b.length; k++) b[k] = (Math.random() * 256) | 0;
-      try { decode(b); } catch (e) { expect(e).toBeInstanceOf(Error); }
+      try { decodeAnswers(b); } catch (e) { expect(e).toBeInstanceOf(Error); }
     }
   });
 });
